@@ -1,0 +1,15 @@
+{
+  "name": "zedd",
+  "version": "0.2.1",
+  "dependencies": {
+    "basic-auth": "^1.0.0",
+    "ini": "^1.3.2",
+    "mime": "^1.2.11",
+    "mkdirp": "^0.3.5",
+    "nconf": "^0.7.1",
+    "secure-json": "github:jonathan-annett/secure-json#7af7d6740dfae5e2dd139b30da249b3b5df4cf48"
+  },
+  "bin": {
+    "zedd": "./server.js"
+  }
+}
