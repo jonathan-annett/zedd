@@ -258,6 +258,40 @@ function requestHandler(req, res) {
     }
 }
 
+function createHttps (keyFile,certFile) {
+    let options = {
+      key : keyFile,
+      cert : certFile
+    };
+    if (keyFile && certFile) {
+      if (typeof keyFile==='string') {
+        options.key = fs.readFileSync(config.get(keyFile)  ;
+      }
+      if (typeof certFile==='string') {
+        options.cert=  fs.readFileSync(config.get(certFile)  ;
+      }
+    } else {
+          if (typeof keyFile==='string') {
+              const buf=options = fs.readFileSync(keyFile);
+              options = JSON.parse(buf);
+              if (Array.isArray(options)) {
+                  options = require("glitch-secure-json").parse(buf);
+              } else {
+                  if (typeof options !== 'object' ) {
+                        options=false;
+                  }
+              }
+          } else {
+            options=false;
+          }
+    }
+    if (options && options.key && options.cert) {
+        delete options.ca;
+        return https.createServer(options, requestHandler);
+    }
+    
+}
+
 function start() {
     var server, isSecure;
     var bindIp = config.get("remote") ? "0.0.0.0" : "127.0.0.1";
@@ -266,11 +300,9 @@ function start() {
         console.error("In remote mode, --user and --pass need to be specified.");
         process.exit(1);
     }
-    if (config.get("tls-key") && config.get("tls-cert")) {
-        server = https.createServer({
-            key: fs.readFileSync(config.get("tls-key")),
-            cert: fs.readFileSync(config.get("tls-cert"))
-        }, requestHandler);
+    
+    if (config.get("tls-key")) {
+        server=createHttps(config.get("tls-key") , config.get("tls-cert"));
         isSecure = true;
     } else {
         server = http.createServer(requestHandler);
