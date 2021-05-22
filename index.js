@@ -265,10 +265,10 @@ function createHttps (keyFile,certFile) {
     };
     if (keyFile && certFile) {
       if (typeof keyFile==='string') {
-        options.key = fs.readFileSync(config.get(keyFile)  ;
+        options.key = fs.readFileSync(keyFile)  ;
       }
       if (typeof certFile==='string') {
-        options.cert=  fs.readFileSync(config.get(certFile)  ;
+        options.cert=  fs.readFileSync(certFile)  ;
       }
     } else {
           if (typeof keyFile==='string') {
