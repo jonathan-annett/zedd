@@ -7,7 +7,7 @@
     "mime": "^1.2.11",
     "mkdirp": "^0.3.5",
     "nconf": "^0.7.1",
-    "glitch-secure-json": "github:jonathan-annett/glitch-secure-json#2b85f81d9f06052871308b7fce03726f51b0f803"
+    "glitch-secure-json": "github:jonathan-annett/glitch-secure-json#c778bfe62e6773f7775b2753bd1be8f9b64ef9db"
   },
   "bin": {
     "zedd": "./server.js"
