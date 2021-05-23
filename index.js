@@ -11,6 +11,7 @@ var mime = require("mime");
 var auth = require("basic-auth");
 var nconf = require("nconf");
 var spawn = require("child_process").spawn;
+var secureJSON = require("glitch-secure-json");
 
 /**
  * Options:
@@ -258,61 +259,69 @@ function requestHandler(req, res) {
     }
 }
 
-const secureJSON = require("glitch-secure-json");
 
-function getTlsOptions () {
-    
-    if (getTlsOptions.cached) {
-        return getTlsOptions.cached.value;
+function getTLSOptions () {
+
+    if (getTLSOptions.cached) {
+        return getTLSOptions.cached.value;
     }
-    
+
     const keyFile    = config.get("tls-key"), 
           certFile   = config.get("tls-cert"),
           keyExists  = typeof keyFile==='string'  &&  fs.existsSync(keyFile),
           certExists = typeof certFile==='string' &&  fs.existsSync(certFile);    
-        
+
      if (keyExists && certExists) {
-         
-        getTlsOptions.cached = { 
+
+        console.log('using',keyFile,'and',certFile,'for tls');
+        getTLSOptions.cached = { 
             value : {
                     key  :  fs.readFileSync(keyFile) ,
                     cert :  fs.readFileSync(certFile) 
                 }
         };
          
-        return  getTlsOptions.cached.value;
+        return  getTLSOptions.cached.value;
 
     } else {
            if (keyExists && !certFile) {
+              console.log('parsing',keyFile,'for tls');
               const buf = fs.readFileSync(keyFile);
               let options = JSON.parse(buf);
               if (Array.isArray(options)) {
+                  console.log(keyFile,'appears to be secureJSON');
                   const config = secureJSON.parse(buf);
                   if (config && typeof config.certs==='object' && config.certs.key && config.certs.cert) {
+                       console.log('parsed secureJSON, using for tls options');
                        delete config.certs.ca; 
-                       getTlsOptions.cached = {value : config.certs};
-                       return getTlsOptions.cached.value;
+                       getTLSOptions.cached = {value : config.certs};
+                       return getTLSOptions.cached.value;
+                  } else {
+                      console.log('could not parse secureJSON');
                   }
               } else {
                   
                   if (typeof options === 'object' && options.key && options.cert) {
+  
                       delete options.ca; 
-                      getTlsOptions.cached = {value : options};
-                      return getTlsOptions.cached.value;
+                      getTLSOptions.cached = {value : options};
+                      return getTLSOptions.cached.value;
                   }
               }
           }
     }
-    getTlsOptions.cached = {};
+    getTLSOptions.cached = {};
 }
 
 function getUserPass (what,passx,fn) {
    if (!!fn.cached) {
+       console.log('reusing',what,': a ',typeof fn.cached.value);
        return fn.cached.value;
    }
    const result = config.get(what);
    if (result) {
       fn.cached = {value:result};
+      console.log('defining',what,': a ',typeof fn.cached.value);
       return fn.cached.value;
    }
    const keyFile    = config.get("tls-key"), 
@@ -326,10 +335,12 @@ function getUserPass (what,passx,fn) {
           const config = secureJSON.parse(buf);
           if (config.aux && config.aux[passx] ) {
              fn.cached = {value:config.aux[passx]};
+             console.log('defining',what,': a ',typeof fn.cached.value,"via securejSON");
              return fn.cached.value;
           }
       }
    }
+   console.log('defining',what,' as having no value');
    fn.cached={};
 }
 
@@ -400,8 +411,10 @@ function start() {
     if (tlsOptions) {
         server= https.createServer(tlsOptions, requestHandler);
         isSecure = true;
+        console.log("started https server using options:",Object.keys(tlsOptions));
     } else {
         server = http.createServer(requestHandler);
+        console.log("started http server");
         isSecure = false;
     }
     server.listen(bindPort, bindIp);
@@ -413,6 +426,7 @@ function start() {
         "Zedd is now listening on " + (isSecure ? "https" : "http") + "://" + bindIp + ":" + bindPort,
         "\nExposed filesystem :", ROOT,
         "\nMode               :", getRemote () ? "remote (externally accessible)" : "local",
+        "\nSecurity           :", isSecure ? "TLS certs":"None",
         "\nCommand execution  :", enableRun ? "enabled" : "disabled",
         "\nAuthentication     :", getUser() ? "enabled" : "disabled");
 }
