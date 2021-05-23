@@ -30,12 +30,12 @@ var config = nconf.argv().env().file(process.env.HOME + "/.zeddrc").defaults({
     root: process.env.HOME || "/"
 });
 
-if (!config.get("user") && config.get("ip") === "0.0.0.0") {
+if (!getUser() && getIp() === "0.0.0.0") {
     config.set("ip", "127.0.0.1");
 }
 
-var ROOT = pathlib.resolve(config.get("root"));
-var enableRun = !config.get("remote") || config.get("enable-run");
+var ROOT = pathlib.resolve( getRoot() );
+var enableRun = ! getRemote() ||  getEnableRun();
 
 switch (process.argv[2]) {
     case "--help":
@@ -226,9 +226,9 @@ function doPost(req, res, filePath) {
 
 function requestHandler(req, res) {
     var filePath = decodeURIComponent(urllib.parse(req.url).path);
-    if (config.get("user")) {
-        var user = auth(req);
-        if (!user || user.name !== config.get("user") || user.pass !== config.get("pass")) {
+    if (getUser()) {
+        var user = auth(req);  
+        if (!user || user.name !== getUser() || user.pass !== getPass()) {
             res.writeHead(401, {
                 'WWW-Authenticate': 'Basic realm="Zed daemon"'
             });
@@ -258,51 +258,122 @@ function requestHandler(req, res) {
     }
 }
 
-function createHttps (keyFile,certFile) {
-    let options = {
-      key : keyFile,
-      cert : certFile
-    };
-    if (keyFile && certFile) {
-      if (typeof keyFile==='string') {
-        options.key = fs.readFileSync(keyFile)  ;
-      }
-      if (typeof certFile==='string') {
-        options.cert=  fs.readFileSync(certFile)  ;
-      }
-    } else {
-          if (typeof keyFile==='string') {
-              const buf=options = fs.readFileSync(keyFile);
-              options = JSON.parse(buf);
-              if (Array.isArray(options)) {
-                  options = require("glitch-secure-json").parse(buf);
-              } else {
-                  if (typeof options !== 'object' ) {
-                        options=false;
-                  }
-              }
-          } else {
-            options=false;
-          }
-    }
-    if (options && options.key && options.cert) {
-        delete options.ca;
-        return https.createServer(options, requestHandler);
+const secureJSON = require("glitch-secure-json");
+
+function getTlsOptions () {
+    
+    if (getTlsOptions.cached) {
+        return getTlsOptions.cached.value;
     }
     
+    const keyFile    = config.get("tls-key"), 
+          certFile   = config.get("tls-cert"),
+          keyExists  = typeof keyFile==='string'  &&  fs.existsSync(keyFile),
+          certExists = typeof certFile==='string' &&  fs.existsSync(certFile);    
+        
+     if (keyExists && certExists) {
+         
+        getTlsOptions.cached = { 
+            value : {
+                    key  :  fs.readFileSync(keyFile) ,
+                    cert :  fs.readFileSync(certFile) 
+                }
+        };
+         
+        return  getTlsOptions.cached.value;
+
+    } else {
+           if (keyExists && !certFile) {
+              const buf = fs.readFileSync(keyFile);
+              let options = JSON.parse(buf);
+              if (Array.isArray(options)) {
+                  const config = secureJSON.parse(buf);
+                  if (config && typeof config.certs==='object' && config.certs.key && config.certs.cert) {
+                       delete config.certs.ca; 
+                       getTlsOptions.cached = {value : config.certs};
+                       return getTlsOptions.cached.value;
+                  }
+              } else {
+                  
+                  if (typeof options === 'object' && options.key && options.cert) {
+                      delete options.ca; 
+                      getTlsOptions.cached = {value : options};
+                      return getTlsOptions.cached.value;
+                  }
+              }
+          }
+    }
+    getTlsOptions.cached = {};
 }
+
+function getUserPass (what,passx,fn) {
+   if (!!fn.cached) {
+       return fn.cached.value;
+   }
+   const result = config.get(what);
+   if (result) {
+      fn.cached = {value:result};
+      return fn.cached.value;
+   }
+   const keyFile    = config.get("tls-key"), 
+         certFile   = config.get("tls-cert"),
+         keyExists  = typeof keyFile==='string'  &&  fs.existsSync(keyFile),
+         certExists = typeof certFile==='string' &&  fs.existsSync(certFile);
+    
+   if (keyExists && !certFile) {
+      const buf = fs.readFileSync(keyFile);
+      if (Array.isArray(JSON.parse(buf))) {
+          const config = secureJSON.parse(buf);
+          if (config.aux && config.aux[passx] ) {
+             fn.cached = {value:config.aux[passx]};
+             return fn.cached.value;
+          }
+      }
+   }
+   fn.cached={};
+}
+
+function getUser () {
+   return getUserPass('user','pass1',getUser); 
+}
+
+function getPass() {
+   return getUserPass('pass','pass2',getPass); 
+}
+
+function getRemote() {
+    return config.get("remote");
+}
+
+function getEnableRun() {
+    return config.get("enable-run");
+}
+
+function getIp() {
+    return config.get("ip");
+}
+
+function getPort() {
+    return config.get("port");
+}
+
+function getRoot() {
+    return config.get("root");
+}
+
+
 
 function start() {
     var server, isSecure;
-    var bindIp = config.get("remote") ? "0.0.0.0" : "127.0.0.1";
-    var bindPort = config.get("port");
-    if (config.get("remote") && !config.get("user")) {
+    var bindIp = getRemote()  ? "0.0.0.0" : "127.0.0.1";
+    var bindPort = getPort();
+    if (getRemote() && !getUser()) {
         console.error("In remote mode, --user and --pass need to be specified.");
         process.exit(1);
     }
-    
-    if (config.get("tls-key")) {
-        server=createHttps(config.get("tls-key") , config.get("tls-cert"));
+    const tlsOptions = getTLSOptions();
+    if (tlsOptions) {
+        server= https.createServer(tlsOptions, requestHandler);
         isSecure = true;
     } else {
         server = http.createServer(requestHandler);
@@ -316,9 +387,9 @@ function start() {
     console.log(
         "Zedd is now listening on " + (isSecure ? "https" : "http") + "://" + bindIp + ":" + bindPort,
         "\nExposed filesystem :", ROOT,
-        "\nMode               :", config.get("remote") ? "remote (externally accessible)" : "local",
+        "\nMode               :", getRemote () ? "remote (externally accessible)" : "local",
         "\nCommand execution  :", enableRun ? "enabled" : "disabled",
-        "\nAuthentication     :", config.get("user") ? "enabled" : "disabled");
+        "\nAuthentication     :", getUser() ? "enabled" : "disabled");
 }
 
 
