@@ -341,6 +341,37 @@ function getPass() {
    return getUserPass('pass','pass2',getPass); 
 }
 
+function checkPass(pass) {
+    
+   const keyFile    = config.get("tls-key"), 
+         certFile   = config.get("tls-cert"),
+         keyExists  = typeof keyFile==='string'  &&  fs.existsSync(keyFile),
+         certExists = typeof certFile==='string' &&  fs.existsSync(certFile);
+    
+   if (keyExists && !certFile) {
+      const buf = fs.readFileSync(keyFile);
+      if (Array.isArray(JSON.parse(buf))) {
+          const config = secureJSON.parse(buf);
+          if (config.aux && config.aux.pass2 ) {
+             const seeds = Buffer.from(JSON.stringify([config.aux.nonce1,config.aux.nonce2,config.aux.nonce3,config.aux.nonce4])), 
+             hash2 = crypto.createHash('sha256').update(
+                Buffer.concat([seeds,Buffer.from(pass)])
+             ).digest('base64').replace(/\=/g,'');
+             return hash2===config.aux.pass2;
+          }
+      }
+     return false;
+   }
+    
+  secureJSON=require("glitch-secure-json"),
+ config = secureJSON.parse(fs.readFileSync("/app/keys.json")),
+ seeds = Buffer.from(JSON.stringify([config.aux.nonce1,config.aux.nonce2,config.aux.nonce3,config.aux.nonce4])),
+    
+    
+    
+       
+}
+
 function getRemote() {
     return config.get("remote");
 }
