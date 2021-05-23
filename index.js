@@ -363,13 +363,7 @@ function checkPass(pass) {
      return false;
    }
     
-  secureJSON=require("glitch-secure-json"),
- config = secureJSON.parse(fs.readFileSync("/app/keys.json")),
- seeds = Buffer.from(JSON.stringify([config.aux.nonce1,config.aux.nonce2,config.aux.nonce3,config.aux.nonce4])),
-    
-    
-    
-       
+   
 }
 
 function getRemote() {
