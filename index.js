@@ -229,7 +229,7 @@ function requestHandler(req, res) {
     var filePath = decodeURIComponent(urllib.parse(req.url).path);
     if (getUser()) {
         var user = auth(req);  
-        if (!user || user.name !== getUser() || user.pass !== getPass()) {
+        if (!checkUserPass( user) ) {
             res.writeHead(401, {
                 'WWW-Authenticate': 'Basic realm="Zed daemon"'
             });
@@ -290,11 +290,11 @@ function getTLSOptions () {
               let options = JSON.parse(buf);
               if (Array.isArray(options)) {
                   console.log(keyFile,'appears to be secureJSON');
-                  const config = secureJSON.parse(buf);
-                  if (config && typeof config.certs==='object' && config.certs.key && config.certs.cert) {
+                  options = secureJSON.parse(buf);
+                  if (options && typeof options.certs==='object' && options.certs.key && options.certs.cert) {
                        console.log('parsed secureJSON, using for tls options');
-                       delete config.certs.ca; 
-                       getTLSOptions.cached = {value : config.certs};
+                       delete options.certs.ca; 
+                       getTLSOptions.cached = {value : options.certs};
                        return getTLSOptions.cached.value;
                   } else {
                       console.log('could not parse secureJSON');
@@ -313,67 +313,60 @@ function getTLSOptions () {
     getTLSOptions.cached = {};
 }
 
-function getUserPass (what,passx,fn) {
-   if (!!fn.cached) {
-       console.log('reusing',what,': a ',typeof fn.cached.value);
-       return fn.cached.value;
+function getUser () {
+   if (!!getUser.cached) {
+       return getUser.cached.value;
    }
-   const result = config.get(what);
+   const result = config.get("user");
    if (result) {
-      fn.cached = {value:result};
-      console.log('defining',what,': a ',typeof fn.cached.value);
-      return fn.cached.value;
+      getUser.cached = {value:result};
+      return getUser.cached.value;
    }
    const keyFile    = config.get("tls-key"), 
          certFile   = config.get("tls-cert"),
-         keyExists  = typeof keyFile==='string'  &&  fs.existsSync(keyFile),
-         certExists = typeof certFile==='string' &&  fs.existsSync(certFile);
+         keyExists  = typeof keyFile==='string'  &&  fs.existsSync(keyFile);
     
    if (keyExists && !certFile) {
       const buf = fs.readFileSync(keyFile);
       if (Array.isArray(JSON.parse(buf))) {
-          const config = secureJSON.parse(buf);
-          if (config.aux && config.aux[passx] ) {
-             fn.cached = {value:config.aux[passx]};
-             console.log('defining',what,': a ',typeof fn.cached.value,"via securejSON");
-             return fn.cached.value;
+          const options = secureJSON.parse(buf);
+          if (options.aux && options.aux.pass1 ) {
+             getUser.cached = {value:options.aux.pass1};
+             return getUser.cached.value;
           }
       }
    }
-   console.log('defining',what,' as having no value');
-   fn.cached={};
-}
-
-function getUser () {
-   return getUserPass('user','pass1',getUser); 
+   getUser.cached={};
 }
 
 function getPass() {
-   return getUserPass('pass','pass2',getPass); 
+   return "xxxx";//config.get("user");
 }
 
-function checkPass(pass) {
+function checkUserPass(user) {
     
    const keyFile    = config.get("tls-key"), 
          certFile   = config.get("tls-cert"),
-         keyExists  = typeof keyFile==='string'  &&  fs.existsSync(keyFile),
-         certExists = typeof certFile==='string' &&  fs.existsSync(certFile);
+         keyExists  = typeof keyFile==='string'  &&  fs.existsSync(keyFile);
     
-   if (keyExists && !certFile) {
+   if (user && keyExists && !certFile) {
+       
       const buf = fs.readFileSync(keyFile);
       if (Array.isArray(JSON.parse(buf))) {
-          const config = secureJSON.parse(buf);
-          if (config.aux && config.aux.pass2 ) {
-             const seeds = Buffer.from(JSON.stringify([config.aux.nonce1,config.aux.nonce2,config.aux.nonce3,config.aux.nonce4])), 
-             hash2 = crypto.createHash('sha256').update(
-                Buffer.concat([seeds,Buffer.from(pass)])
-             ).digest('base64').replace(/\=/g,'');
-             return hash2===config.aux.pass2;
-          }
+          const aux = secureJSON.parse(buf).aux;
+          return aux && aux.pass2  && 
+                 (aux.pass1 === user.name) && 
+                 (aux.pass2 === require("crypto")
+                    .createHash('sha256')
+                    .update( Buffer.concat([
+                        Buffer.from(JSON.stringify([aux.nonce1,aux.nonce2,aux.nonce3,aux.nonce4])),
+                        Buffer.from(user.pass)  ])
+                    )
+                    .digest('base64').replace(/\=/g,'') );
       }
-     return false;
    }
     
+   return false;
    
 }
 
