@@ -15,6 +15,12 @@ extra features
 
 installation
 
+first, check out the [live demo](https://glitch.com/edit/#!/humdrum-successful-park?path=README.md%3A1%3A0) on glitch.
+
+to roll your own, on your own server, it's a little more involved, as you need ssl certs.
+
+thankfully there's letsencrypt.
+
 feel free to read [install.sh](https://github.com/jonathan-annett/zedd/blob/115e3e6f3cb0021fe80331dce466c08b764f5cf3/install.sh#L1)
 and enter commands manually, as this assumes your system has nothing installed.
 
