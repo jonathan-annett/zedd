@@ -118,7 +118,7 @@ update_system() {
  
  cd ${HERE}
  
- mkdir -p make_keyjson
+ mkdir -p make_keyjson/node_modules
  cd make_keyjson
  cat <<JSON > package.json
  {
@@ -147,6 +147,7 @@ require("server-startup")(function (express,server) {
 } );
 JS
 
+chmod a+rw -R *
 npm install 
 
 #run make.js, expecting it to fail due to no certs, it will create keys.js  
