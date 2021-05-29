@@ -84,7 +84,7 @@ function ZEDD(standalone) {
         console.log("./zedd.json or as command line arguments prefixed with '--':");
         console.log();
         console.log("   user:       username to use for authentication (default: none)");
-        console.log("  	 pass:       password to use for authentication (default: none)");
+        console.log("       pass:       password to use for authentication (default: none)");
         console.log("   remote:     bind to 0.0.0.0, requires auth, and disables");
         console.log("               enable-run by default");
         console.log("   port:       port to bind to (default: 7337)");
@@ -652,5 +652,10 @@ function setExternalOptions(opt) {
     }
 }
 
-module.exports = ZEDD(process.mainModule.filename === __filename);
-module.exports.setOptions = setExternalOptions;
+
+if (process.mainModule.filename === __filename) {
+    ZEDD(true);
+} else {
+    module.exports = ZEDD;
+    module.exports.setOptions = setExternalOptions;
+}
