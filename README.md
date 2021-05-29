@@ -41,7 +41,7 @@ sudo ./install.sh example.com me@gmail.com 17377 zedd
 ```
 
   * if you don't specify a port, 17337 will be used
-  * if you don't sepcify a username, zedd will be used
+  * if you don't specify a username, zedd will be used
   * important - don't use use an existing username, unless you want it's account overwritten
   * the zedd user will run the server process and live in a sandbox, with restricted permssions
   
