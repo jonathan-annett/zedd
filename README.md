@@ -13,6 +13,8 @@ extra features
   - works against original ZED client.
  
 
+please read [install.sh]()
+
 ```bash
 cd ~
 
