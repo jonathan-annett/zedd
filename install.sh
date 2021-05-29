@@ -129,7 +129,7 @@ update_system() {
   "dependencies": {
     "express": "^4.17.1",
     "bufferutil": "^4.0.1",
-    "server-startup": "github:jonathan-annett/server-startup#4c7b25a20bd5370d94a3dc6f1e7a7cd8768ad478"
+    "server-startup": "github:jonathan-annett/server-startup#7c1988bd92f2db0fc45e564fd49c00aaba1a6ec3"
   },
   "engines": {
     "node": "12.x"
