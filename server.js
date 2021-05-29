@@ -92,7 +92,7 @@ function ZEDD(standalone) {
                         }    
                     }
                    
-                    start(req);
+                    
                 } else {
                   return requestHandler;   
                 }
