@@ -172,7 +172,7 @@ node ./new-keys.js > ./initial-passwords-please-change.json
 cat <<JSON  > zedd.json
 {
   "tls-key":"keys.json",
-  "port" : $PORT,
+  "port" : $ZEDD_PORT,
   "root" : "/public",
   "remote": true,
   "ip":"0.0.0.0"
