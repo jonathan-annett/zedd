@@ -162,6 +162,8 @@ sudo node ./keys.js ${DOMAIN} $HERE/keys.json
 
 sudo node ./keys.js ${DOMAIN} $HERE/keys.json 
 
+sudo mv .env ${HERE}/.env
+
 cd ${HERE}
 
 #make a new set of keys for zedd  
