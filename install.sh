@@ -1,7 +1,6 @@
 #!/bin/bash
-if [ "$(whoami)" != "root" ] ; then
-   echo "try that again, with sudo, for example:"
-   echo "  sudo $0 $@"
+if [ "$(whoami)" == "root" ] ; then
+   echo "try that again, without sudo"
    exit 0;
 fi
 HERE=$(realpath $(dirname $0))
@@ -47,9 +46,9 @@ fi
 APT_UPDATED=no
 do_apt_get () {
   which $1 >/dev/null && return 0
-  [[ "$APT_UPDATED" == "yes" ]] || apt-get update
+  [[ "$APT_UPDATED" == "yes" ]] || sudo apt-get update
   APT_UPDATED=yes
-  apt-install -y $2
+  sudo apt-install -y $2
 }
 
 update_system() {
@@ -72,13 +71,13 @@ update_system() {
   else
      curl -L https://raw.githubusercontent.com/tj/n/master/bin/n -o ${HERE}/n
      cd ${HERE}
-     bash n lts
-     npm install -g n
+     sudo bash n lts
+     sudo npm install -g n
      n 12.0
      rm ${HERE}/n
   fi
 
-  which pm2 || npm install -g pm2
+  which pm2 || sudo npm install -g pm2
   
   cd ${HERE}
   
@@ -99,7 +98,7 @@ update_system() {
      echo skipping certbot download
   else
   
-  certbot \
+  sudo certbot \
      certonly \
     --standalone \
     --preferred-challenges http \
@@ -129,7 +128,7 @@ update_system() {
   "dependencies": {
     "express": "^4.17.1",
     "bufferutil": "^4.0.1",
-    "server-startup": "github:jonathan-annett/server-startup#7c1988bd92f2db0fc45e564fd49c00aaba1a6ec3"
+    "server-startup": "github:jonathan-annett/server-startup#4c7b25a20bd5370d94a3dc6f1e7a7cd8768ad478"
   },
   "engines": {
     "node": "12.x"
@@ -147,23 +146,19 @@ require("server-startup")(function (express,server) {
 } );
 JS
 
-chown $SUDU_USER:$SUDU_USER -R *
-chmod a+rw -R *
-cat <<NO_SUDO | su $SUDU_USER 
 
 npm install 
 #run make.js, expecting it to fail due to no certs, it will create keys.js  
 node ./make-keys.js || echo "ready to create keys..."
 
-NO_SUDO
 
 #run keys.js once to generate a key for secureJSON (aborts after that)
 
-node ./keys.js ${DOMAIN} $HERE/keys.json 
+sudo node ./keys.js ${DOMAIN} $HERE/keys.json 
 
 #run keys.js again to make the actual keys.json file
 
-node ./keys.js ${DOMAIN} $HERE/keys.json 
+sudo node ./keys.js ${DOMAIN} $HERE/keys.json 
 
 cd ${HERE}
 
