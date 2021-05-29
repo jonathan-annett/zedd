@@ -171,6 +171,6 @@ node ./new-keys.js > ./initial-passwords-please-change.json
 cd ..
   
 ls -al `which make-chroot-jail`
-make-chroot-jail $ZEDD_USER $HERE && ${ZEDD_USER}_cli node ./new-keys.js && ${ZEDD_USER}_install &&  ${ZEDD_USER}_logs
+sudo make-chroot-jail $ZEDD_USER $HERE && ${ZEDD_USER}_cli node ./new-keys.js && ${ZEDD_USER}_install &&  ${ZEDD_USER}_logs
 
 
