@@ -1,6 +1,6 @@
 # zedd
 
-a repackaged version of the zedd remote daemon for [ZED] (https://github.com/zedapp/zed)
+a repackaged version of the zedd remote daemon for [ZED](https://github.com/zedapp/zed)
 
 based on [original code](https://github.com/zedapp/zed/tree/master/zedd) by [Zef Hemel](https://github.com/zedapp/zed/commits?author=zefhemel)
 
