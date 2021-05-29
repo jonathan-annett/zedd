@@ -60,7 +60,7 @@ update_system() {
   do_apt_get jq jq
   do_apt_get zip zip
   do_apt_get unzip unzip
-  if [[ -f "/etc/letsencrypt/live/${DOMAIN}/cert.pem" ]]; then
+  if sudo ls /etc/letsencrypt/live/${DOMAIN}/cert.pem | grep  $DOMAIN -qs ; then
      echo skipping certbot install check - certs exist
   else
      do_apt_get certbot certbot
@@ -94,7 +94,7 @@ update_system() {
 }
 
  create_certs() {
-  if [[ -f "/etc/letsencrypt/live/${DOMAIN}/cert.pem" ]]; then
+  if sudo ls /etc/letsencrypt/live/${DOMAIN}/cert.pem | grep  $DOMAIN -qs; then
      echo skipping certbot download
   else
   
