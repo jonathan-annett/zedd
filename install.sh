@@ -63,7 +63,7 @@ update_system() {
   do_apt_get unzip unzip
   do_apt_get certbot certbot
 
-  if [[ which node 2>/dev/null  ]]  then 
+  if which node 2>/dev/null   then 
     echo using existing node
   else
      curl -L https://raw.githubusercontent.com/tj/n/master/bin/n -o ${HERE}/n
