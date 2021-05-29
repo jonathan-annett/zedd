@@ -68,7 +68,7 @@ function ZEDD(standalone) {
                 if (typeof app === "function") {
                     
                     if (typeof externalOptions.route==='string') {
-                         const sliceFrom=externalOptions.route.length;
+                         const sliceFrom=externalOptions.route.length-1;
                          app.use( function (req,res,next) {
                             if (req.url.startsWith(externalOptions.route)) {
                                 console.log('hit!',req.url);
