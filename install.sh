@@ -32,10 +32,10 @@ if [[ "$EMAIL" == "" ]] ||  [[ "$DOMAIN" == "" ]]; then
   echo " important - don't use use an existing username, unless you want it's account overwritten"
   echo " the zedd user will run the server process and live in a sandbox, with restricted permssions"
   echo ""
-  
+  exit 0
 fi
 HTTP_RUNNING=0
-[[ which nc >/dev/null ]] && nc -z localhost 80 && HTTP_RUNNING=1
+which nc >/dev/null && nc -z localhost 80 && HTTP_RUNNING=1
 
 if [[ "$HTTP_RUNNING" == "1" ]]; then 
    echo ""
