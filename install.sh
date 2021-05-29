@@ -87,7 +87,7 @@ update_system() {
   
   chmod 755  ./install.sh
   
-  ./install.sh
+  sudo ./install.sh
   
   ls -al 
   
