@@ -91,18 +91,15 @@ update_system() {
 }
 
 function create_certs() {
-  EMAIL="$1"
-  DOMAIN="$2"
-  
   certbot \
      certonly \
     --standalone \
     --preferred-challenges http \
     --non-interactive \
     --agree-tos \
-    -m ${EMAIL} \
-    -d ${DOMAIN} \
-    -d www.${DOMAIN} 
+    -m "${EMAIL}" \
+    -d "${DOMAIN}" \
+    -d "www.${DOMAIN}" 
  }
  
  update_system
