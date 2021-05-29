@@ -64,11 +64,37 @@ function ZEDD(standalone) {
 
         return {
             options: setExternalOptions,
-            start: function(req, res, next) {
-                if (typeof req + typeof res + typeof next === "functionfunctionfunction") {
-
+            start: function(app) {
+                if (typeof app === "function") {
+                    
+                    if (typeof externalOptions.route==='string') {
+                         const sliceFrom=externalOptions.route.length;
+                         app.use( function (req,res,next) {
+                            if (req.url.startsWith(externalOptions.route)) {
+                                req.url = req.url.substr(sliceFrom);
+                                return requestHandler(req,res);
+                            } else {
+                                return next();
+                            }
+                        });
+                    } else {
+                         if (typeof externalOptions.route==='object' && externalOptions.route.constructor===RegExp) {
+                             const regExp = externalOptions.route;
+                             app.use( function (req,res,next) {
+                                const test = regExp.exec(req.url) 
+                                if (test) {
+                                    req.url = req.url.substr(test[0].length);
+                                    return requestHandler(req,res);
+                                } else {
+                                    return next();
+                                }
+                            });
+                        }    
+                    }
+                   
+                    start(req);
                 } else {
-                    if (typeof req === "function") start(req);
+                  return requestHandler;   
                 }
             },
             stop: function() {
