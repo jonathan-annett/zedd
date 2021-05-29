@@ -44,23 +44,37 @@ if [[ "$HTTP_RUNNING" == "1" ]]; then
    exit 1
 fi
 
-function update_system() {
+APT_UPDATED=no
+do_apt_get () {
+  which $1 >/dev/null && return 0
+  [[ "$APT_UPDATED" == "yes" ]] || apt-get update
+  APT_UPDATED=yes
+  apt-install -y $2
+}
+
+update_system() {
 
   cd ${HERE}
   
   
+  do_apt_get git git
+  do_apt_get jq jq
+  do_apt_get zip zip
+  do_apt_get unzip unzip
+  do_apt_get certbot certbot
 
-  apt-get update
-  apt-get install -y jq git zip unzip certbot
+  if [[ which node 2>/dev/null  ]]  then 
+    echo using existing node
+  else
+     curl -L https://raw.githubusercontent.com/tj/n/master/bin/n -o ${HERE}/n
+     cd ${HERE}
+     bash n lts
+     npm install -g n
+     n 12.0
+     rm ${HERE}/n
+  fi
 
-  curl -L https://raw.githubusercontent.com/tj/n/master/bin/n -o n
-
-  bash n lts
-  npm install -g n
-  n 12.0
-  rm /root/n
-
-  npm install -g pm2
+  which pm2 || npm install -g pm2
   
   cd ${HERE}
   
@@ -69,8 +83,10 @@ function update_system() {
   cd chroot-node-app
   
   chmod 755  ./install.sh
+  
   ./install.sh
   
+  cd ${HERE}
 
 }
 
