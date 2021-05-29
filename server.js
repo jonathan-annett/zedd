@@ -64,6 +64,7 @@ function ZEDD(standalone) {
 
         return {
             options: setExternalOptions,
+            checkUserPass:checkUserPass,
             start: function(app) {
                 if (typeof app === "function") {
                     
@@ -71,12 +72,9 @@ function ZEDD(standalone) {
                          const sliceFrom=externalOptions.route.length-1;
                          app.use( function (req,res,next) {
                             if (req.url.startsWith(externalOptions.route)) {
-                                console.log('hit!',req.url);
                                 req.url = req.url.substr(sliceFrom);
-                                console.log('>>>',req.url);
                                 return requestHandler(req,res);
                             } else {
-                                console.log('miss!',req.url);
                                 return next();
                             }
                         });
