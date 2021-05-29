@@ -473,12 +473,12 @@ function ZEDD(standalone) {
             const buf = fs.readFileSync(keyFile);
             if (Array.isArray(JSON.parse(buf))) {
                 const aux = secureJSON.parse(buf).aux;
-                return aux && aux.pass2 && (aux.pass1 === user.name) && (aux.pass2 === require("crypto")
+                return aux && aux.pass2 && (aux.pass1 === user.name) && (aux.pass2.replace(/\/\=\+/g === require("crypto")
                     .createHash('sha256')
                     .update(Buffer.concat([
                 Buffer.from(JSON.stringify([aux.nonce1, aux.nonce2, aux.nonce3, aux.nonce4])),
                 Buffer.from(user.pass)]))
-                    .digest('base64').replace(/\=/g, ''));
+                    .digest('base64').replace(/\/\=\+/g, ''));
             }
         }
 
