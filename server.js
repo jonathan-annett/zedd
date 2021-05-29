@@ -17,7 +17,7 @@ function ZEDD(standalone) {
     var spawn = require("child_process").spawn;
     var secureJSON = require("glitch-secure-json");
     
-    var base64FuglyChars = /\/\=\+/g;
+    var base64FuglyChars =  /(\/|\=|\+)/g;
 
 
     /**
