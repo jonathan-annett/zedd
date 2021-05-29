@@ -361,6 +361,35 @@ function ZEDD(standalone) {
         }
         return config.get("tls-cert")
     }
+    
+    
+    function getDomain() {
+        if (externalOptions) {
+            return externalOptions.domain;
+        }
+        if (getDomain.cached) {
+            return getDomain.cached.value;
+        }
+
+        const keyFile = getTLSKey(),
+        certFile = getTLSCert(),
+        keyExists = typeof keyFile === 'string' && fs.existsSync(keyFile);
+
+        if (keyExists && !certFile) {
+            const buf = fs.readFileSync(keyFile);
+            if (Array.isArray(JSON.parse(buf))) {
+                const options = secureJSON.parse(buf);
+                if (options.domain) {
+                    getDomain.cached = {
+                        value: options.domain
+                    };
+                    return getDomain.cached.value;
+                }
+            }
+        }
+        getDomain.cached = {};
+    }
+
 
 
     function getUser() {
@@ -504,6 +533,8 @@ function ZEDD(standalone) {
         if (standalone) {
             console.log(
                 "Zedd is now listening on " + (isSecure ? "https" : "http") + "://" + bindIp + ":" + bindPort,
+                getDomain()?
+                "\n                         "+ (isSecure ? "https" : "http") + "://" + getDomain() + ":" + bindPort : "",
                 "\nExposed filesystem :", ROOT,
                 "\nMode               :", getRemote() ? "remote (externally accessible)" : "local",
                 "\nSecurity           :", isSecure ? "TLS certs" : "None",
