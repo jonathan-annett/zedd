@@ -18,7 +18,9 @@ installation
 feel free to read [install.sh](https://github.com/jonathan-annett/zedd/blob/115e3e6f3cb0021fe80331dce466c08b764f5cf3/install.sh#L1)
 and enter commands manually, as this assumes your system has nothing installed.
 
-(For example, the script will check if have git installed, and download it if you don't, just in case you downloaded and extracted these files from a zip. It also checks to see if you have zip/unzip, in case you used git!)
+The script will check if have git installed, and download it if you don't, just in case you downloaded and extracted these files from a zip. It also checks to see if you have zip/unzip, in case you used git! 
+
+so you may not need the first line, if you aleady have the files in a folder.
 
 ```bash
 cd ~
