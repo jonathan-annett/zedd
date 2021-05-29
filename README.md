@@ -14,6 +14,7 @@ extra features
  
 
 installation
+===
 
 first, check out the [live demo](https://glitch.com/edit/#!/humdrum-successful-park?path=README.md%3A1%3A0) on glitch.
 
