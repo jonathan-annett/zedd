@@ -147,11 +147,15 @@ require("server-startup")(function (express,server) {
 } );
 JS
 
+chown $SUDU_USER:$SUDU_USER -R *
 chmod a+rw -R *
-npm install 
+cat <<NO_SUDO | su $SUDU_USER 
 
+npm install 
 #run make.js, expecting it to fail due to no certs, it will create keys.js  
 node ./make-keys.js || echo "ready to create keys..."
+
+NO_SUDO
 
 #run keys.js once to generate a key for secureJSON (aborts after that)
 
