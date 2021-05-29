@@ -61,7 +61,11 @@ update_system() {
   do_apt_get jq jq
   do_apt_get zip zip
   do_apt_get unzip unzip
-  do_apt_get certbot certbot
+  if [[ -f "/etc/letsencrypt/live/${DOMAIN}/cert.pem" ]]; then
+     echo skipping certbot install check - certs exist
+  else
+     do_apt_get certbot certbot
+  fi
 
   if which node 2>/dev/null  ; then 
     echo using existing node
@@ -90,7 +94,11 @@ update_system() {
 
 }
 
-function create_certs() {
+ create_certs() {
+  if [[ -f "/etc/letsencrypt/live/${DOMAIN}/cert.pem" ]]; then
+     echo skipping certbot download
+  else
+  
   certbot \
      certonly \
     --standalone \
@@ -100,6 +108,8 @@ function create_certs() {
     -m "${EMAIL}" \
     -d "${DOMAIN}" \
     -d "www.${DOMAIN}" 
+    
+  fi
  }
  
  update_system
@@ -108,7 +118,7 @@ function create_certs() {
  
  cd ${HERE}
  
- mkdir make_keyjson
+ mkdir -p make_keyjson
  cd make_keyjson
  cat <<JSON > package.json
  {
@@ -135,7 +145,7 @@ require("server-startup")(function (express,server) {
   return express();
   return app;
 } );
-JS 
+JS
 
 npm install 
 
