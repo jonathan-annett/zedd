@@ -16,6 +16,8 @@ function ZEDD(standalone) {
     var nconf = require("nconf");
     var spawn = require("child_process").spawn;
     var secureJSON = require("glitch-secure-json");
+    
+    var base64FuglyChars = /\/\=\+/g;
 
 
     /**
@@ -65,6 +67,7 @@ function ZEDD(standalone) {
         return {
             options: setExternalOptions,
             checkUserPass:checkUserPass,
+            base64FuglyChars:base64FuglyChars,
             start: function(app) {
                 if (typeof app === "function") {
                     
@@ -473,12 +476,12 @@ function ZEDD(standalone) {
             const buf = fs.readFileSync(keyFile);
             if (Array.isArray(JSON.parse(buf))) {
                 const aux = secureJSON.parse(buf).aux;
-                return aux && aux.pass2 && (aux.pass1 === user.name) && (aux.pass2.replace(/\/\=\+/g === require("crypto")
+                return aux && aux.pass2 && (aux.pass1 === user.name) && (aux.pass2.replace(base64FuglyChars,'') === require("crypto")
                     .createHash('sha256')
                     .update(Buffer.concat([
                 Buffer.from(JSON.stringify([aux.nonce1, aux.nonce2, aux.nonce3, aux.nonce4])),
                 Buffer.from(user.pass)]))
-                    .digest('base64').replace(/\/\=\+/g, ''));
+                    .digest('base64').replace(base64FuglyChars,''));
             }
         }
 
