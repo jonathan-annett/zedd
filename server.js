@@ -68,42 +68,38 @@ function ZEDD(standalone) {
             options: setExternalOptions,
             checkUserPass:checkUserPass,
             base64FuglyChars:base64FuglyChars,
-            start: function(app) {
-                if (typeof app === "function") {
+            middleware: function( ) {
+               
                     
                     if (typeof externalOptions.route==='string') {
                          const sliceFrom=externalOptions.route.length-1;
-                         app.use( function (req,res,next) {
+                         return function middleWareStringPrefix(req,res,next) {
                             if (req.url.startsWith(externalOptions.route)) {
                                 req.url = req.url.substr(sliceFrom);
                                 return requestHandler(req,res);
                             } else {
                                 return next();
                             }
-                        });
+                        };
                     } else {
                          if (typeof externalOptions.route==='object' && externalOptions.route.constructor===RegExp) {
                              const regExp = externalOptions.route;
-                             app.use( function (req,res,next) {
+                             return function middleWareRegexReplace (req,res,next) {
                                 const test = regExp.exec(req.url) 
                                 if (test) {
-                                    req.url = req.url.substr(test[0].length);
+                                    req.url = req.url.replace(regExp,'/');
                                     return requestHandler(req,res);
                                 } else {
                                     return next();
                                 }
-                            });
-                        }    
+                              };
+                        } else {
+                             return requestHandler;   
+                        }
                     }
                    
-                    
-                } else {
-                  return requestHandler;   
-                }
-            },
-            stop: function() {
-
-            }
+                
+            } 
 
         }
     }
