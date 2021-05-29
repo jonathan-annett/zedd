@@ -29,5 +29,12 @@ git clone https://github.com/jonathan-annett/zedd.git
 cd zedd
 chmod 755 install.sh
 # use your actual domain name and email address, don't put a leading www.
-sudo ./install.sh example.com me@gmail.com 
+# also the port and zedd (username) are the defaults. you can leave them off if you like
+sudo ./install.sh example.com me@gmail.com 17377 zedd
 ```
+
+  * if you don't specify a port, 17337 will be used
+  * if you don't sepcify a username, zedd will be used
+  * important - don't use use an existing username, unless you want it's account overwritten
+  * the zedd user will run the server process and live in a sandbox, with restricted permssions
+  
