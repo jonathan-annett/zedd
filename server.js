@@ -481,7 +481,7 @@ function ZEDD(standalone) {
                 
                 console.log({aux});
                 console.log({user});
-                console.log({hashdPass});
+                console.log({hashedPass});
                 return aux && aux.pass2 && (aux.pass1 === user.name) && (aux.pass2.replace(base64FuglyChars,'') === hashedPass);
                 
             }
