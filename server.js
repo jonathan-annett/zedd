@@ -374,17 +374,11 @@ function ZEDD(standalone) {
 
 
     function getTLSKey() {
-        if (externalOptions) {
-            return externalOptions.TLSKey;
-        }
         return config.get("tls-key")
     }
 
 
     function getTLSCert() {
-        if (externalOptions) {
-            return externalOptions.TLSCert;
-        }
         return config.get("tls-cert")
     }
     
