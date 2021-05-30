@@ -67,7 +67,7 @@ function ZEDD(standalone) {
         return {
             options: setExternalOptions,
             checkUserPass:checkUserPass,
-            checkAuth : checkAuth,
+            authenticate : authenticate,
             base64FuglyChars:base64FuglyChars,
             middleware: function( ) {
                
