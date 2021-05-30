@@ -67,6 +67,7 @@ function ZEDD(standalone) {
         return {
             options: setExternalOptions,
             checkUserPass:checkUserPass,
+            checkAuth : checkAuth,
             base64FuglyChars:base64FuglyChars,
             middleware: function( ) {
                
@@ -279,39 +280,92 @@ function ZEDD(standalone) {
             }
         });
     }
+    
+    function authenticate(req,cb) {
+        
+        if (typeof authenticate.mtimeMs +typeof authenticate.authorization==='numberstring') {
+           // has been called successfully previously 
+           if (req.zedd_auth === authenticate.authorization) {
+             return cb(true);      
+           }
+            
+           if (req.headers && 
+               typeof req.headers === 'object' &&
+               req.headers.authorization === authenticate.authorization ) {
+               return fs.stat(externalOptions.TLSKey,function(err,stat) {
+                   if (stat && stat.mtimeMs===authenticate.mtimeMs) {
+                       req.zedd_auth = req.headers.authorization;
+                       return cb(true);
+                   } 
+                   checkAuth(stat?stat.mtimeMs:false,authorization);
+               });
+               
+           }
+            
+        }
+        
+        checkAuth(false,false);
+            
+        function checkAuth(mtimeMs,authorization) {
+            delete authenticate.mtimeMs;
+            delete authenticate.authorization;
+            if (getUser()||externalOptions) {
+                var user = auth(req);
+                if (!checkUserPass(user)) {
+                    res.writeHead(401, {
+                        'WWW-Authenticate': 'Basic realm="Zed daemon"'
+                    });
+                    res.end();
+                    return ;
+                }
+                
+                //if we get here, we are authenticated
+                
+                if (mtimeMs && authorization) {
+                    authenticate.mtimeMs = mtimeMs;
+                    authenticate.authorization =authorization;
+                    return cb(); 
+                }
+                if (!authorization) {
+                    return cb(); 
+                }
+                return fs.stat(externalOptions.TLSKey,function(err,stat) {
+                    if (stat) {
+                        authenticate.mtimeMs = stat.mtimeMs;
+                        authenticate.authorization = authorization;
+                    }
+                    return cb();
+                });
+            } 
+            cb(); 
+        }
+    }
 
     function requestHandler(req, res) {
-        var filePath = decodeURIComponent(urllib.parse(req.url).path);
-        if (getUser()||externalOptions) {
-            var user = auth(req);
-            if (!checkUserPass(user)) {
-                res.writeHead(401, {
-                    'WWW-Authenticate': 'Basic realm="Zed daemon"'
-                });
-                return res.end();
-            }
-        }
-        console.log(req.method, filePath);
-        filePath = pathlib.normalize(pathlib.join(ROOT, filePath));
+        return authenticate (req,function(ok){
+               
+             var filePath = decodeURIComponent(urllib.parse(req.url).path);
+                filePath = pathlib.normalize(pathlib.join(ROOT, filePath));
 
-        if (filePath.indexOf(ROOT) !== 0) {
-            return error(res, 500, "Hack attempt?");
-        }
+                if (filePath.indexOf(ROOT) !== 0) {
+                    return error(res, 500, "Hack attempt?");
+                }
 
-        switch (req.method) {
-            case "GET":
-                return doGet(req, res, filePath);
-            case "HEAD":
-                return doHead(req, res, filePath);
-            case "PUT":
-                return doPut(req, res, filePath);
-            case "POST":
-                return doPost(req, res, filePath);
-            case "DELETE":
-                return doDelete(req, res, filePath);
-            default:
-                return error(res, 500, "Unknown request type");
-        }
+                switch (req.method) {
+                    case "GET":
+                        return doGet(req, res, filePath);
+                    case "HEAD":
+                        return doHead(req, res, filePath);
+                    case "PUT":
+                        return doPut(req, res, filePath);
+                    case "POST":
+                        return doPost(req, res, filePath);
+                    case "DELETE":
+                        return doDelete(req, res, filePath);
+                    default:
+                        return error(res, 500, "Unknown request type");
+                }
+        });
     }
 
 
@@ -462,7 +516,7 @@ function ZEDD(standalone) {
         if (externalOptions && typeof externalOptions.checkUserPass === "function") {
             return externalOptions.checkUserPass(user);
         }
-
+        
         const keyFile = getTLSKey(),
         certFile = getTLSCert(),
         keyExists = typeof keyFile === 'string' && fs.existsSync(keyFile);
