@@ -281,7 +281,7 @@ function ZEDD(standalone) {
         });
     }
     
-    function authenticate(req,cb) {
+    function authenticate(req,res,cb) {
         
         if (typeof authenticate.mtimeMs +typeof authenticate.authorization==='numberstring') {
            // has been called successfully previously 
