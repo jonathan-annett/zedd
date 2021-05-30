@@ -342,7 +342,7 @@ function ZEDD(standalone) {
     }
 
     function requestHandler(req, res) {
-        return authenticate (req,function(ok){
+        return authenticate (req,res,function(ok){
                
              var filePath = decodeURIComponent(urllib.parse(req.url).path);
                 filePath = pathlib.normalize(pathlib.join(ROOT, filePath));
