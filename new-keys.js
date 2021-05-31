@@ -1,4 +1,11 @@
-const removeUnwantedBase64Chars =  /(\/|\=|\+)/g;
+  const 
+     fs = require("fs"), 
+     path = require("path"),
+     crypto = require("crypto"),
+     secureJSON=require("glitch-secure-json"),
+
+     removeUnwantedBase64Chars =  /(\/|\=|\+)/g;
+
 
 function makeNewPassword(config) {
  
@@ -30,11 +37,7 @@ function makeNewPassword(config) {
 }
 
 function cmdLine(key_filename,app_path) {
-  const 
-     fs = require("fs"), 
-     path = require("path"),
-     crypto = require("crypto"),
-     secureJSON=require("glitch-secure-json");
+
  
  
  app_path = app_path || path.dirname( process.mainModule.filename );
