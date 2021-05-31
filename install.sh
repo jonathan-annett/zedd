@@ -168,6 +168,7 @@ cd ${HERE}
 
 #make a new set of keys for zedd  
 
+npm install
 node ./new-keys.js > ./initial-passwords-please-change.json
 
 
