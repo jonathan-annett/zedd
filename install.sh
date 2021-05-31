@@ -169,8 +169,6 @@ cd ${HERE}
 #make a new set of keys for zedd  
 
 npm install
-node ./new-keys.js > ./initial-passwords-please-change.json
-
 
 cat <<JSON  > zedd.json
 {
@@ -181,6 +179,11 @@ cat <<JSON  > zedd.json
   "ip":"0.0.0.0"
 }
 JSON
+
+node ./new-keys.js > ./initial-passwords-please-change.json
+
+
+
 cd ..
   
 ls -al `which make-chroot-jail`
