@@ -23,9 +23,9 @@ function makeNewPassword(config) {
     .replace(removeUnwantedBase64Chars, "");
   };
 
-  config.aux.pass1 = rehash(config.aux.pass1)]));
-  const zeddpass   = rehash(config.aux.pass2)]);
-  config.aux.pass2 = rehash(zeddpass)]));
+  config.aux.pass1 = rehash(config.aux.pass1);
+  const zeddpass   = rehash(config.aux.pass2);
+  config.aux.pass2 = rehash(zeddpass);
   return zeddpass;
 }
 
