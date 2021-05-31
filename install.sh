@@ -180,7 +180,7 @@ cat <<JSON  > zedd.json
 }
 JSON
 
-node ./new-keys.js > ./initial-passwords-please-change.json
+node ./new-keys.js > /dev/null
 
 
 
