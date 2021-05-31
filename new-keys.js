@@ -1,39 +1,79 @@
-try {
+const removeUnwantedBase64Chars =  /(\/|\=|\+)/g;
 
- const 
+function makeNewPassword(config) {
  
- fs = require("fs"), 
- crypto = require('crypto'),
- secureJSON=require("glitch-secure-json"),
- config = secureJSON.parse(fs.readFileSync("./keys.json")),
- zcfg = JSON.parse(fs.readFileSync("./zedd.json")),
+  config.aux =  require(path.join(
+        path.dirname(require.resolve("server-startup")),
+        "genpass"
+      )).auxPasswords(2);
  
- seeds = Buffer.from(JSON.stringify([config.aux.nonce1,config.aux.nonce2,config.aux.nonce3,config.aux.nonce4])),
-    
-    hash1 = crypto.createHash('sha256').update(
-    Buffer.concat([seeds,Buffer.from(config.aux.pass1)])
-    ).digest('base64').replace(/\=/g,''),
-       
-    hash2 = crypto.createHash('sha256').update(
-    Buffer.concat([seeds,Buffer.from(config.aux.pass2)])
-    ).digest('base64').replace(/\=/g,'');
-    
-    
-    console.log(JSON.stringify({
-       url: "https://"+config.domain+":"+zcfg.port+"/",
-       auth:{
-       user : hash1,
-       pass : config.aux.pass2 
-    }},undefined,4)); 
-    
-    config.aux.pass1=hash1;
-    config.aux.pass2=hash2;
-    delete config.aux.pass3;
-    delete config.aux.pass4;
+  const 
+    seeds = Buffer.from(
+      JSON.stringify([
+        config.aux.nonce1,
+        config.aux.nonce2,
+        config.aux.nonce3,
+        config.aux.nonce4
+      ])
+    ),
+ rehash = function(input){
+    return crypto.createHash("sha256")
+    .update(Buffer.concat([seeds, Buffer.from(input)]))
+    .digest("base64")
+    .replace(removeUnwantedBase64Chars, "");
+  };
 
-    fs.writeFileSync("./keys.json",secureJSON.stringify(config));
-    
-    
-} catch (e) {
-    console.log(e);
+  config.aux.pass1 = rehash(config.aux.pass1)]));
+  const zeddpass   = rehash(config.aux.pass2)]);
+  config.aux.pass2 = rehash(zeddpass)]));
+  return zeddpass;
+}
+
+function cmdLine(key_filename,app_path) {
+  const 
+     fs = require("fs"), 
+     path = require("path"),
+     crypto = require("crypto"),
+     secureJSON=require("glitch-secure-json");
+ 
+ 
+ app_path = app_path || path.dirname( process.mainModule.filename );
+     
+ key_filename = key_filename || app_path+"/keys.json";
+ 
+ zcfg_filename = app_path+"/zedd.json";
+ 
+ 
+    try {
+
+     const 
+
+ 
+     config = secureJSON.parse(fs.readFileSync(key_filename)),
+     zcfg = JSON.parse(fs.readFileSync(zcfg_filename)),
+     zeddpass =  makeNewPassword(config);
+
+       console.log(JSON.stringify({
+          url: "https://"+config.domain+":"+zcfg.port+"/",
+          auth: {
+          user : config.aux.pass1,
+          pass : zeddpass
+       }},undefined,4)); 
+
+     fs.writeFileSync(key_filename,secureJSON.stringify(config));
+
+    } catch (e) {
+        console.log(e);
+    }
+}
+
+
+if (process.mainModule && process.mainModule.filename === __filename) {
+   cmdLine ("./keys.json",".");
+} else {
+   module.exports = {
+      makeNewPassword : makeNewPassword,
+      removeUnwantedBase64Chars : removeUnwantedBase64Chars,
+      cmdLine : cmdLine 
+   };
 }
