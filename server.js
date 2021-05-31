@@ -17,9 +17,9 @@ function ZEDD(standalone) {
     var spawn = require("child_process").spawn;
     var secureJSON = require("glitch-secure-json");
     
-    var base64FuglyChars =  /(\/|\=|\+)/g;
+    const {   makeNewPassword, removeUnwantedBase64Chars  } = require("./new-keys.js");
 
-
+ 
     /**
      * Options:
      * - user
@@ -68,7 +68,9 @@ function ZEDD(standalone) {
             options: setExternalOptions,
             checkUserPass:checkUserPass,
             authenticate : authenticate,
-            base64FuglyChars:base64FuglyChars,
+            base64FuglyChars:removeUnwantedBase64Chars,
+            makeNewPassword : makeNewPassword,
+            removeUnwantedBase64Chars:removeUnwantedBase64Chars,
             middleware: function( ) {
                
                     
@@ -530,13 +532,13 @@ function ZEDD(standalone) {
                 const hashedPass = require("crypto")
                     .createHash('sha256').update(Buffer.concat([ 
                          Buffer.from(JSON.stringify([aux.nonce1, aux.nonce2, aux.nonce3, aux.nonce4])),
-                         Buffer.from(user.pass.replace(base64FuglyChars,''))
-                    ])).digest('base64').replace(base64FuglyChars,'');
+                         Buffer.from(user.pass.replace(removeUnwantedBase64Chars,''))
+                    ])).digest('base64').replace(removeUnwantedBase64Chars,'');
                 
                 //console.log({aux});
                // console.log({user});
                // console.log({hashedPass});
-                return aux && aux.pass2 && (aux.pass1 === user.name) && (aux.pass2.replace(base64FuglyChars,'') === hashedPass);
+                return aux && aux.pass2 && (aux.pass1 === user.name) && (aux.pass2.replace(removeUnwantedBase64Chars,'') === hashedPass);
                 
             }
         }
