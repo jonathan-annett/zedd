@@ -8,6 +8,7 @@
     "mkdirp": "^0.3.5",
     "nconf": "^0.7.1",
     "server-startup": "github:jonathan-annett/server-startup#8987ec8c9b88c8ff87e84f9f310eed52047ed25a",
+    "pako": "^2.0.3",
     "string-diff-regex": "github:jonathan-annett/string-diff-regex#1cdc1c30232dab676648aff54129fc53cb965927"
   },
   "main": "./server.js",
