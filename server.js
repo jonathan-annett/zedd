@@ -325,7 +325,6 @@ function ZEDD(standalone) {
         authenticate (req,res,standardRequestHandler);
     }
     
-    
     function standardRequestHandler(req, res) {
         
          var filePath = decodeURIComponent(urllib.parse(req.url).path);
@@ -352,8 +351,6 @@ function ZEDD(standalone) {
     
     }
     
-   
-
     function getTLSOptions() {
 
         if (getTLSOptions.cached) {

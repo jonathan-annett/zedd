@@ -1986,7 +1986,10 @@
                     exports.nodeMiddleware = nodeMiddleware;
    
 
-             function nodeMiddleware(app,express,upgrade_headers,realGetHandler,realPutHandler) {
+             function nodeMiddleware(
+                 app,express,
+                 upgrade_headers,
+                 realGetHandler,realPutHandler,realDeleteHandler) {
                 
                  const cache = {};
                 
@@ -1997,20 +2000,14 @@
                     if (req && res){
                         next=next||noNext;
                         switch (req.method) {
-                            case "PATCH" :
-                                return bufferBodyRequest(req,res,"patch",function(){
-                                    if (req.patch) {
-                                        nodePatchHandler(req,res);
-                                    } else {
-                                       next();
-                                    }
-                                });
-                            case "GET" : return nodeGetHandler(req,res);
-                            case "PUT" : return nodePutHandler(req,res);
+                            case "PATCH" :   return nodePatchHandler(req,res);
+                            case "GET" :    return nodeGetHandler(req,res);
+                            case "PUT" :    return nodePutHandler(req,res);
+                            case "DELETE" : return nodeDeleteHandler(req,res);
                                 
-                            default:
-                              return next();
+                            default:        return next();
                         } 
+                        
                         if (req.method!=="PATCH") {
                            return next();
 
@@ -2097,74 +2094,108 @@
                     
                  } 
                  
-                 function nodePatchHandler (req,res) {
-                    
-                    
-                    // first get a cache id for the request
-                    getURLId(req.url,function(uri,uri_id){
+                 
+                 function nodeDeleteHandler (req,res) {
+                     
+                     /*
+                         traps data that's received via the standard PUT method, and caches it, in 
+                         anticipation of pending PATCH methods.
+                     
+                     */ 
+
+                     getURLId(req.url,function(uri,uri_id){
                         
-                        const meta = cache[uri_id];
-                        
-                        if (meta.handle) {
+                        const meta = cache[uri_id]  ;
+                        if (meta) {
+                    
+                            if (meta.handle) {
+                              meta.handle.close();
+                            }
+                            delete meta.handle;
+                            delete meta.data;
+                            delete cache[uri_id];
                             
-                          meta.handle.patch(req.patch,function(err,newTextData){
-                              
-                              if (err) {
-                                  res.writeHead(200, "OK", {
-                                      'Content-Type': 'application/json'
-                                  });
-                                  res.end(JSON.stringify(
-                                      {error:err.message||err,current:meta.handle.hash}
-                                  ));
-                                  
-                              } else {
-                                   
-                                      
-                                    // make a fake request object that can be used in PUT handler
-                                    const 
-                                     //dataBuf = Buffer.from(newTextData,'utf8'), 
-                                     REQ = proxyRequestBody(
-                                        req.url,
-                                        [
-                                            //dataBuf
-                                            newTextData   // we can get away with this, because zedd just doesn't inspect it.
-                                                   // just passes it on to file.write.
-                                        ],
-                                        {
-                                          method:'PUT'
-                                          //headers : {  'content-length' : dataBuf.length.toString()  }
-
-                                        });
-                                  
-                                    
-                                    realPutHandler(REQ,proxyResponseWrite(res).onChunks(function(chunks){
-                                        
-                                        // this gets invoked after the data has been read from the request body
-                                        
-                                        // we don't really want the chunks, but we need to know it's done.
-                                        // as it turns out this is fine for memory usage as we will get the same
-                                        // exact data we passed into REQ, so no big deal.
-                                        
-                                        meta.data = newTextData;
-                                        
-                                        res.writeHead(200, "OK", {
-                                            'Content-Type': 'application/json'
-                                        });
-                                        res.end(JSON.stringify(
-                                            {current:meta.handle.hash}
-                                        ));
-                                    
-                                            
-
-                                    }).res);
-                              }
-                          });
-                          
                         }
-                
+                        realDeleteHandler(req,res);
                        
-                    
+                       
                     });
+                    
+                 } 
+                 
+                 
+                 function nodePatchHandler (req,res) {
+                     
+                     bufferBodyRequest(req,res,"patch",function(){
+                         
+                         // first get a cache id for the request
+                         getURLId(req.url,function(uri,uri_id){
+                             
+                             const meta = cache[uri_id];
+                             
+                             if (meta.handle) {
+                                 
+                               meta.handle.patch(req.patch,function(err,newTextData){
+                                   
+                                   if (err) {
+                                       res.writeHead(200, "OK", {
+                                           'Content-Type': 'application/json'
+                                       });
+                                       res.end(JSON.stringify(
+                                           {error:err.message||err,current:meta.handle.hash}
+                                       ));
+                                       
+                                   } else {
+                                        
+                                           
+                                         // make a fake request object that can be used in PUT handler
+                                         const 
+                                          //dataBuf = Buffer.from(newTextData,'utf8'), 
+                                          REQ = proxyRequestBody(
+                                             req.url,
+                                             [
+                                                 //dataBuf
+                                                 newTextData   // we can get away with this, because zedd just doesn't inspect it.
+                                                        // just passes it on to file.write.
+                                             ],
+                                             {
+                                               method:'PUT'
+                                               //headers : {  'content-length' : dataBuf.length.toString()  }
+     
+                                             });
+                                       
+                                         
+                                         realPutHandler(REQ,proxyResponseWrite(res).onChunks(function(chunks){
+                                             
+                                             // this gets invoked after the data has been read from the request body
+                                             
+                                             // we don't really want the chunks, but we need to know it's done.
+                                             // as it turns out this is fine for memory usage as we will get the same
+                                             // exact data we passed into REQ, so no big deal.
+                                             
+                                             meta.data = newTextData;
+                                             
+                                             res.writeHead(200, "OK", {
+                                                 'Content-Type': 'application/json'
+                                             });
+                                             res.end(JSON.stringify(
+                                                 {current:meta.handle.hash}
+                                             ));
+                                         
+                                                 
+     
+                                         }).res);
+                                   }
+                               });
+                               
+                             }
+                     
+                            
+                         
+                         });
+                         
+                         
+                     });
                     
                  }
                
