@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 var externalOptions;
-
+const zam_path = "./zedd-express-middleware.js";
 function ZEDD(standalone) {
     var http = require("http");
     var https = require("https");
@@ -15,9 +15,10 @@ function ZEDD(standalone) {
     var auth = require("basic-auth");
     var nconf = require("nconf");
     var spawn = require("child_process").spawn;
-    var secureJSON = require("glitch-secure-json");
     
+    const secureJSON = require("glitch-secure-json");
     const {   makeNewPassword, removeUnwantedBase64Chars  } = require("./new-keys.js");
+    const { ZeddAsMiddleWare } = require(zam_path);
 
  
     /**
@@ -63,50 +64,27 @@ function ZEDD(standalone) {
         }
 
     } else {
-
-        return {
+         return {
             options: setExternalOptions,
             checkUserPass:checkUserPass,
             authenticate : authenticate,
             base64FuglyChars:removeUnwantedBase64Chars,
             makeNewPassword : makeNewPassword,
             removeUnwantedBase64Chars:removeUnwantedBase64Chars,
-            middleware: function( ) {
-               
-                    
-                    if (typeof externalOptions.route==='string') {
-                         const sliceFrom=externalOptions.route.length-1;
-                         return function middleWareStringPrefix(req,res,next) {
-                            if (req.url.startsWith(externalOptions.route)) {
-                                req.url = req.url.substr(sliceFrom);
-                                return requestHandler(req,res);
-                            } else {
-                                return next();
-                            }
-                        };
-                    } else {
-                         if (typeof externalOptions.route==='object' && externalOptions.route.constructor===RegExp) {
-                             const regExp = externalOptions.route;
-                             return function middleWareRegexReplace (req,res,next) {
-                                const test = regExp.exec(req.url) 
-                                if (test) {
-                                    req.url = req.url.replace(regExp,'/');
-                                    return requestHandler(req,res);
-                                } else {
-                                    return next();
-                                }
-                              };
-                        } else {
-                             return requestHandler;   
-                        }
-                    }
-                   
-                
-            } 
+            middleware: ZeddAsMiddleWare(
+                externalOptions,{
+                    authenticationHandler,
+                    authenticate,
+                    standardRequestHandler,
+                    bufferPostRequest,
+                    ROOT,
+                    httpError : error
+                })
 
         }
     }
-
+    
+    
     function help() {
         console.log("Zedd is the Zed daemon used to edit files either locally or remotely using Zed.");
         console.log("Options can be passed in either as environment variables, JSON config in");
@@ -288,7 +266,7 @@ function ZEDD(standalone) {
         if (typeof authenticate.mtimeMs +typeof authenticate.authorization==='numberstring') {
            // has been called successfully previously 
            if (req.zedd_auth === authenticate.authorization) {
-             return cb(true);      
+             return cb(req,res);      
            }
             
            if (req.headers && 
@@ -297,9 +275,9 @@ function ZEDD(standalone) {
                return fs.stat(externalOptions.TLSKey,function(err,stat) {
                    if (stat && stat.mtimeMs===authenticate.mtimeMs) {
                        req.zedd_auth = req.headers.authorization;
-                       return cb(true);
+                       return cb(res,res);
                    } 
-                   checkAuth(stat?stat.mtimeMs:false,authorization);
+                   checkAuth(stat?stat.mtimeMs:false,authenticate.authorization);
                });
                
            }
@@ -326,50 +304,55 @@ function ZEDD(standalone) {
                 if (mtimeMs && authorization) {
                     authenticate.mtimeMs = mtimeMs;
                     authenticate.authorization =authorization;
-                    return cb(); 
+                    return cb(req,res);
                 }
                 if (!authorization) {
-                    return cb(); 
+                    return cb(req,res);
                 }
                 return fs.stat(externalOptions.TLSKey,function(err,stat) {
                     if (stat) {
                         authenticate.mtimeMs = stat.mtimeMs;
                         authenticate.authorization = authorization;
                     }
-                    return cb();
+                    return cb(req,res);
                 });
             } 
-            cb(); 
+            return cb(req,res);
         }
     }
 
-    function requestHandler(req, res) {
-        return authenticate (req,res,function(ok){
-               
-             var filePath = decodeURIComponent(urllib.parse(req.url).path);
-                filePath = pathlib.normalize(pathlib.join(ROOT, filePath));
-
-                if (filePath.indexOf(ROOT) !== 0) {
-                    return error(res, 500, "Hack attempt?");
-                }
-
-                switch (req.method) {
-                    case "GET":
-                        return doGet(req, res, filePath);
-                    case "HEAD":
-                        return doHead(req, res, filePath);
-                    case "PUT":
-                        return doPut(req, res, filePath);
-                    case "POST":
-                        return doPost(req, res, filePath);
-                    case "DELETE":
-                        return doDelete(req, res, filePath);
-                    default:
-                        return error(res, 500, "Unknown request type");
-                }
-        });
+    function authenticationHandler(req, res) {
+        authenticate (req,res,standardRequestHandler);
     }
+    
+    
+    function standardRequestHandler(req, res) {
+        
+         var filePath = decodeURIComponent(urllib.parse(req.url).path);
+            filePath = pathlib.normalize(pathlib.join(ROOT, filePath));
 
+            if (filePath.indexOf(ROOT) !== 0) {
+                return error(res, 500, "Hack attempt?");
+            }
+
+            switch (req.method) {
+                case "GET":
+                    return doGet(req, res, filePath);
+                case "HEAD":
+                    return doHead(req, res, filePath);
+                case "PUT":
+                    return doPut(req, res, filePath);
+                case "POST":
+                    return doPost(req, res, filePath);
+                case "DELETE":
+                    return doDelete(req, res, filePath);
+                default:
+                    return error(res, 500, "Unknown request type");
+            }
+    
+    }
+    
+   
 
     function getTLSOptions() {
 
@@ -596,14 +579,15 @@ function ZEDD(standalone) {
             } else {
                 return cb(new Error(err));
             }
-        }
+        } 
         const tlsOptions = getTLSOptions();
+        const handler = ZeddAsMiddleWare({},{authenticationHandler,authenticate,standardRequestHandler,bufferPostRequest});
         if (tlsOptions) {
-            server = https.createServer(tlsOptions, requestHandler);
+            server = https.createServer(tlsOptions,handler );
             isSecure = true;
             console.log("started https server using options:", Object.keys(tlsOptions));
         } else {
-            server = http.createServer(requestHandler);
+            server = http.createServer(handler);
             console.log("started http server");
             isSecure = false;
         }
@@ -653,7 +637,7 @@ function ZEDD(standalone) {
                 req.connection.destroy();
             }
         });
-        req.on("end", function() {
+            req.on("end", function() {
             res.post = qs.parse(queryData);
             callback();
         });
@@ -753,6 +737,8 @@ function ZEDD(standalone) {
 
 }
 
+
+
 function setExternalOptions(opt) {
     externalOptions = opt;
 
@@ -765,7 +751,7 @@ function setExternalOptions(opt) {
             opt.ip = "0.0.0.0";
         }
         if (!opt.root) {
-            opt.root = process.env.HOME || require('path').ddirname(process.mailModule.filename);
+            opt.root = process.env.HOME || require('path').dirname(process.mainModule.filename);
         }
 
     }
@@ -777,4 +763,5 @@ if (process.mainModule.filename === __filename) {
 } else {
     module.exports = ZEDD;
     module.exports.setOptions = setExternalOptions;
+    module.exports.middleware = require(zam_path).ZeddAsMiddleWare;
 }
