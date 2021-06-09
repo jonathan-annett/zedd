@@ -6,6 +6,16 @@
     define
     ) {
         
+    const /*node>>>*/
+    strip_browser_logging = false ?/(^([\ |\t]*log\(.*?);)|(^([\ |\t]*const log\s\=\s[a-z|A-Z]+[a-z|A-Z|0-9]\.log\;$))/gm : false,
+    /*<<<node*/
+    logging=function(fn,state){
+        const prefix = fn.name+":";
+        fn.log=state ? console.log.bind(console,prefix) : function(){ };
+    },
+    logReturn = console.log.bind(console);
+    
+        
     const sha1 = sha1Lib();
     
     const cpArgs = Array.prototype.slice.call.bind (Array.prototype.slice);
@@ -350,7 +360,11 @@
         setTimeout(doCollect, loop_sleep_time);
     }
     
+    
+    logging(openDiffer,true);
     function openDiffer(origin, key, chunksize) {
+        const log = openDiffer.log;
+        
         chunksize = typeof chunksize === 'number' ? Math.max(chunksize, 128) : 1024;
         
         var 
@@ -1126,11 +1140,11 @@
                     const call_updater = function(evnt) {
                         parse_update(updateScript,function (err,test_data){
                             if (err) {
-                                console.log(err.message);
+                                log(err.message);
                                 return;
                             }
                             if (test_data!==value) {
-                                console.log("test parse failed");
+                                log("test parse failed");
                                 return;
                             }
                             value  = updating;
@@ -1665,10 +1679,10 @@
                       if (new_value && !err) {
                         value=new_value;
                         self.emit('change',new_value);
-                        return cb ?  cb(undefined,new_value):console.log("patch applied");
+                        return cb ?  cb(undefined,new_value): logReturn("patch applied");
                       } else {
                        
-                        return cb?cb(err):console.log(err);
+                        return cb?cb(err) : logReturn(err);
                       }
                   });
               },
@@ -1706,6 +1720,23 @@
         var cache = {};
         
         checkCached();
+        
+        logging(beforeAjaxHead,true);
+        logging(beforeAjaxGet,true);
+        logging(afterAjaxGet,true);
+        logging(onAjaxGetError,true);
+        
+        logging(beforeAjaxPut,true);
+        logging(afterAjaxPut,true);
+        logging(onAjaxPutError,true);
+        
+        logging(beforeAjaxPost,true);
+        logging(afterAjaxPost,true);
+        logging(onAjaxPostError,true);
+        
+        logging(ajaxHandler,false);
+        
+                
     
         return ajaxHandler;
         
@@ -1800,15 +1831,21 @@
             );
         }
         
+        
+        
         function ajaxHandler(AJAX, JQ, ARGS, ON) {
+            const log = ajaxHandler.log;
             
-            
-            console.log("ajaxHandler:",ARGS);
+            log("ajaxHandler:",ARGS);
             
             // handler for all requests that are local ("ON.URI") 
             ON.URL(base_URL,function(){
                 
-                ON.beforeGET(beforeAjaxGet);
+                
+                
+                ON.before_HEAD(beforeAjaxHead);
+                
+                ON.before_GET(beforeAjaxGet);
                 ON.after_GET(afterAjaxGet);
                 ON.error_GET(onAjaxGetError);
                 
@@ -1826,16 +1863,31 @@
                 
         }
         
-        function beforeAjaxGet(url, uri_id, allow, deny, respond, OPTS) {
-            getFromCache(uri_id,null,function(file,cacheObj){
-                if (file===null) {
-                   return allow();
-                }
+
+        function beforeAjaxHead(url, uri_id, allow, deny, respond, OPTS) {
+            const log = beforeAjaxHead.log;
+            //getFromCache(uri_id,null,function(file,cacheObj){
                 if (OPTS.headers) {
                    OPTS.headers[upgrade_header_name]=upgrade_header_value;
                 } else {
                    OPTS.headers =upgrade_headers; 
                 }
+               return allow();
+           // });
+        }
+        
+        function beforeAjaxGet(url, uri_id, allow, deny, respond, OPTS) {
+            const log = beforeAjaxGet.log;
+            getFromCache(uri_id,null,function(file,cacheObj){
+                if (file===null) {
+                    if (OPTS.headers) {
+                       OPTS.headers[upgrade_header_name]=upgrade_header_value;
+                    } else {
+                       OPTS.headers =upgrade_headers; 
+                    }
+                   return allow();
+                }
+               
 
                 if (!cacheObj.handle) {
                     cacheObj.handle = openDiffer(cacheObj,uri_id);
@@ -1846,7 +1898,8 @@
             });
         }
         function afterAjaxGet(url, uri_id, response, deny, respond) {
-           updateCache(url, uri_id,response,function(cacheObj){
+            const log = afterAjaxGet.log;
+            updateCache(url, uri_id,response,function(cacheObj){
                if (!cacheObj.handle) {
                    cacheObj.handle = openDiffer(cacheObj,uri_id);
                    cacheObj.handle.addEventListener('fullpatch',on_updated.bind(this,uri_id,url,cacheObj));
@@ -1856,11 +1909,13 @@
            });
         }
         function onAjaxGetError(uri, url_id, status, deny, respond) {
-            console.log(uri,status);
+            const log = onAjaxGetError.log;
+            log(uri,status);
             deny(status);
         }
         
         function beforeAjaxPut(url, uri_id, allow, deny, respond, OPTS) {
+             const log = beforeAjaxPut.log;
              updateCache(url,uri_id,OPTS.data,function(){
                 if (OPTS.headers) {
                    OPTS.headers[upgrade_header_name]=upgrade_header_value;
@@ -1871,27 +1926,30 @@
              });
         }
         function afterAjaxPut(uri, uri_id, response, deny, respond) {
-            console.log(uri,response);// inspect results
+            const log = afterAjaxPut.log;
+            log(uri,response);// inspect results
             respond(response);
         }
         function onAjaxPutError(uri, url_id, status, deny, respond) {
-            console.log(uri,status);
+            const log = onAjaxPutError.log;
+            log(uri,status);
             deny(status);
         }
         
         function beforeAjaxPost(uri, url_id, allow, deny, respond, OPTS) {
-            console.log(uri);
+            const log = beforeAjaxPost.log;
+            log(uri);
             allow();
         }
-        
         function afterAjaxPost(uri, url_id, response, deny, respond) {
-           console.log(response);// inspect results
-           response.seen = true;//modify results
-           respond(response);
+            const log = afterAjaxPost.log;
+            log(response);// inspect results
+            response.seen = true;//modify results
+            respond(response);
         }
-        
         function onAjaxPostError(uri, url_id, status, deny, respond) {
-            console.log(status);// inspect results
+            const log = onAjaxPostError.log;
+            log(status);// inspect results
             if (status===500) {
                 respond('<html><body>sorry.</body></html>');
             } else {
@@ -2015,13 +2073,20 @@
 
                     // no point in exporting the web browser middlware code...
                     delete exports.ajaxMiddleWare;
-                    exports.selfServeHandler = require('./self-serve-handler.js')(__filename);
+                    exports.selfServeHandler = require('./self-serve-handler.js')(__filename,undefined,strip_browser_logging);
                     exports.nodeMiddleware = nodeMiddleware;
    
 
+             logging(nodeMiddleware,true);
+             
              function nodeMiddleware(
                  app,express,
-                 realGetHandler,realPutHandler,realDeleteHandler) {
+                 realHeadHandler,
+                 realGetHandler,
+                 realPutHandler,
+                 realDeleteHandler) {
+                      
+                 const log = nodeMiddleware.log;     
                 
                  const cache = {};
                 
@@ -2032,6 +2097,7 @@
                     if (req && res){
                         next=next||noNext;
                         switch (req.method) {
+                            case "HEAD" :    return nodeHeadHandler(req,res);
                             case "PATCH" :   return nodePatchHandler(req,res);
                             case "GET" :     return nodeGetHandler(req,res);
                             case "PUT" :     return nodePutHandler(req,res);
@@ -2063,6 +2129,28 @@
                      });
                  }
                  
+                 
+                 function nodeHeadHandler (req,res) {
+                    
+                   
+                    /*
+                    traps data that's sent via the standard GET method, and caches it, in 
+                    anticipation of pending PATCH methods.
+                    
+                    */ 
+                    
+                    log("nodeHeadHandler",req.url);
+                    
+                    // first get a cache id for the request
+                    getURLId(req.url,function(uri,uri_id){
+                        log("nodeHeadHandler->getURLId",uri_id);
+                         //pass the request on to the real handler.
+                        realHeadHandler(req,res);
+                        
+                    });
+                    
+                 }
+                 
 
                  function nodeGetHandler (req,res) {
                     /*
@@ -2071,18 +2159,21 @@
                     
                     */ 
                     
+                    log("nodeGetHandler",req.url);
+                    
                     // first get a cache id for the request
                     getURLId(req.url,function(uri,uri_id){
-                        
+                        log("nodeGetHandler->getURLId",uri_id);
                         //trap the buffer being sent to this response...
                         proxyResponseWrite(res).onBuffer=function(buffer){
+                            log("nodeGetHandler->proxyResponseWrite->",typeof buffer);
                             
                             const meta = cache[uri_id] || ( cache[uri_id] = {uri:uri} );   
                             if (meta.handle) {
                                 meta.handle.close();
                             }
                             
-                            console.log("proxied GET:updating cache:#"+uri_id,uri,buffer.length,"bytes");
+                            log("proxied GET:updating cache:#"+uri_id,uri,buffer.length,"bytes");
                             meta.handle = openDiffer(buffer.toString('utf8'));
                             
                         };
@@ -2118,7 +2209,7 @@
                                meta.handle.close();
                              }
                              const buffer = Buffer.concat(chunks);
-                             console.log("proxied PUT:updating cache:#"+uri_id,uri,buffer.length,"bytes");
+                             log("proxied PUT:updating cache:#"+uri_id,uri,buffer.length,"bytes");
                              meta.handle = openDiffer(buffer.toString('utf8'));
                              
 
