@@ -17,7 +17,7 @@ function ZEDD(standalone) {
     var spawn = require("child_process").spawn;
     
     const secureJSON = require("glitch-secure-json");
-    const {   makeNewPassword, removeUnwantedBase64Chars  } = require("./new-keys.js");
+    const { makeNewPassword, removeUnwantedBase64Chars  } = require("./new-keys.js");
     const { ZeddAsMiddleWare } = require(zam_path);
 
  
@@ -408,7 +408,6 @@ function ZEDD(standalone) {
         getTLSOptions.cached = {};
     }
 
-
     function getTLSKey() {
          if (externalOptions) {
             return externalOptions.TLSKey;
@@ -416,14 +415,12 @@ function ZEDD(standalone) {
         return config.get("tls-key")
     }
 
-
     function getTLSCert() {
         if (externalOptions) {
             return externalOptions.TLSCert;
         }
         return config.get("tls-cert")
     }
-    
     
     function getDomain() {
         if (externalOptions) {
@@ -451,8 +448,6 @@ function ZEDD(standalone) {
         }
         getDomain.cached = {};
     }
-
-
 
     function getUser() {
         if (externalOptions) {
@@ -494,39 +489,6 @@ function ZEDD(standalone) {
         return "xxxx"; //config.get("user");
     }
 
-    function checkUserPass(user) {
-        if (externalOptions && typeof externalOptions.checkUserPass === "function") {
-            return externalOptions.checkUserPass(user);
-        }
-        
-        const keyFile = getTLSKey(),
-        certFile = getTLSCert(),
-        keyExists = typeof keyFile === 'string' && fs.existsSync(keyFile);
-
-        if (user && keyExists && !certFile) {
-
-            const buf = fs.readFileSync(keyFile);
-            if (Array.isArray(JSON.parse(buf))) {
-                const aux = secureJSON.parse(buf).aux;
-                
-                const hashedPass = require("crypto")
-                    .createHash('sha256').update(Buffer.concat([ 
-                         Buffer.from(JSON.stringify([aux.nonce1, aux.nonce2, aux.nonce3, aux.nonce4])),
-                         Buffer.from(user.pass.replace(removeUnwantedBase64Chars,''))
-                    ])).digest('base64').replace(removeUnwantedBase64Chars,'');
-                
-                //console.log({aux});
-               // console.log({user});
-               // console.log({hashedPass});
-                return aux && aux.pass2 && (aux.pass1 === user.name) && (aux.pass2.replace(removeUnwantedBase64Chars,'') === hashedPass);
-                
-            }
-        }
-
-        return false;
-
-    }
-
     function getRemote() {
         if (externalOptions) {
             return externalOptions.remote;
@@ -562,7 +524,38 @@ function ZEDD(standalone) {
         return config.get("root");
     }
 
+    function checkUserPass(user) {
+        if (externalOptions && typeof externalOptions.checkUserPass === "function") {
+            return externalOptions.checkUserPass(user);
+        }
+        
+        const keyFile = getTLSKey(),
+        certFile = getTLSCert(),
+        keyExists = typeof keyFile === 'string' && fs.existsSync(keyFile);
 
+        if (user && keyExists && !certFile) {
+
+            const buf = fs.readFileSync(keyFile);
+            if (Array.isArray(JSON.parse(buf))) {
+                const aux = secureJSON.parse(buf).aux;
+                
+                const hashedPass = require("crypto")
+                    .createHash('sha256').update(Buffer.concat([ 
+                         Buffer.from(JSON.stringify([aux.nonce1, aux.nonce2, aux.nonce3, aux.nonce4])),
+                         Buffer.from(user.pass.replace(removeUnwantedBase64Chars,''))
+                    ])).digest('base64').replace(removeUnwantedBase64Chars,'');
+                
+                //console.log({aux});
+               // console.log({user});
+               // console.log({hashedPass});
+                return aux && aux.pass2 && (aux.pass1 === user.name) && (aux.pass2.replace(removeUnwantedBase64Chars,'') === hashedPass);
+                
+            }
+        }
+
+        return false;
+
+    }
 
     function start(cb) {
         var server, isSecure;
@@ -620,7 +613,6 @@ function ZEDD(standalone) {
             });
         }
     }
-
 
     function bufferPostRequest(req, res, callback) {
         var queryData = "";

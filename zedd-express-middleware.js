@@ -4,22 +4,22 @@ const lib = module.exports = {
 
 };
 
-const {diff, apply_diff/*,sha1*/ } = (lib.stringDiffRegex = require ('string-diff-regex')).utils;
+//const {diff, apply_diff/*,sha1*/ } = (lib.stringDiffRegex = require ('string-diff-regex')).utils;
 
-const { sha1,forwardSubstring,reverseSubstring,collectSlices, openDiffer, nodeMiddleware } = (lib.hashDiffMiddleware = require ('./hashdiffmware.js') ) ;
+const { 
+    sha1,
+    forwardSubstring,
+    reverseSubstring,
+    collectSlices, 
+    openDiffer, 
+    upgrade_header_name,
+    upgrade_header_value,
+    upgrade_headers,
+    nodeMiddleware } = (lib.hashDiffMiddleware = require ('./hashdiffmware.js') ) ;
 
 const hashDiffJSHandler =  lib.hashDiffMiddleware.selfServeHandler;
 const hashDiffJSURL = '/hashdiffmware.js';
 
-const stringDiffHandler = lib.stringDiffRegex.selfServeHandler;
-const stringDiffURL = '/string-diff-regex.js';
-
-//console.log({diff, apply_diff,sha1});
-
-const upgrade_header_name = 'x-zedd-rest-upgrade';
-const upgrade_header_value  = '1';
-
-const upgrade_headers = {}; upgrade_headers [upgrade_header_name] = upgrade_header_value;
 
 const X_SHA1_Header = 'x-sha1';
 const X_ContentLength = 'x-content-cength';
@@ -27,19 +27,11 @@ const X_ContentLength = 'x-content-cength';
 var qs = require("querystring");
 var fs = require("fs");
 var path = require("path");
+var favicon = require('serve-favicon')();
     
 function ZeddAsMiddleWare(options, handlerOptions) {
     const crypto = require('crypto');
-    const REST = {
-        GET:    GET,
-        PUT:    PUT,
-        POST:   POST,
-        PATCH:  PATCH,
-        DELETE: DELETE,
-        HEAD:   HEAD
-    };
-    
-    const hashes = {};
+     const hashes = {};
 
     const leadingDoubleSlash = /^\/\//;
     const singleSlash = '/';
@@ -52,9 +44,18 @@ function ZeddAsMiddleWare(options, handlerOptions) {
         httpError
     } = handlerOptions,
     
-    hashDiffMiddleWare =  nodeMiddleware(undefined,undefined,upgrade_headers,standardRequestHandler,standardRequestHandler);
+    hashDiffMiddleWare =  nodeMiddleware(undefined,undefined,standardRequestHandler,standardRequestHandler);
     
+    const REST = {
+        GET:    hashDiffMiddleWare,
+        PUT:    hashDiffMiddleWare,
+      //  POST:   POST,
+        PATCH:  hashDiffMiddleWare,
+        DELETE: hashDiffMiddleWare,
+       // HEAD:   HEAD
+    };
     
+  
     
     function reqLogger(req,res){
         let ts,tok;
@@ -70,16 +71,16 @@ function ZeddAsMiddleWare(options, handlerOptions) {
         };
         res.addListener('finished',function(){
             req.__zedd.log("finished");
-        })
+        });
         return req.__zedd;
     }
     
     function selfServes(req,res,next) {
         
-        if (req.url===stringDiffURL) {
-            //console.log(req.method,req.url);
-            return stringDiffHandler(req,res);
-          }
+//        if (req.url===stringDiffURL) {
+            //console.log(req.method,req.url)
+//            return stringDiffHandler(req,res);
+//          }
         
         
         if (req.url===hashDiffJSURL) {
@@ -87,8 +88,7 @@ function ZeddAsMiddleWare(options, handlerOptions) {
             return hashDiffJSHandler(req,res);
           }
         
-        
-        next ();
+        favicon(req, res, next);
 
     }
     
@@ -96,7 +96,7 @@ function ZeddAsMiddleWare(options, handlerOptions) {
     if (typeof options.route === 'string') {
         const sliceFrom = options.route.length - 1;
         const upgrade_prefix = '/zedd-upgrade?' + options.route.replace(/^\//, '');
-        console.log("ZeddAsMiddleWare: using middleWareStringPrefix[ " + options.route + " ]")
+        console.log("ZeddAsMiddleWare: using middleWareStringPrefix[ " + options.route + " ]");
         return function middleWareStringPrefix(req, res, next) {
            
             if (req.url.startsWith(options.route)) {
@@ -120,7 +120,7 @@ function ZeddAsMiddleWare(options, handlerOptions) {
         if (typeof options.route === 'object' && options.route.constructor === RegExp) {
             const regExp = options.route;
             const upgradeFilter = /\/zedd-upgrade\?/;
-            console.log("ZeddAsMiddleWare: using middleWareRegexReplace[ " + regExp.toString() + " ]")
+            console.log("ZeddAsMiddleWare: using middleWareRegexReplace[ " + regExp.toString() + " ]");
 
             return function middleWareRegexReplace(req, res, next) {
                
@@ -211,7 +211,7 @@ function ZeddAsMiddleWare(options, handlerOptions) {
                 req.__zedd.log('resProxy.'+prop+'(',arguments,') called by',req.url);
                 return res[prop].apply(res,args);
             }
-        }
+        };
         
     }
     
@@ -406,17 +406,7 @@ function ZeddAsMiddleWare(options, handlerOptions) {
         });
     }
 
-    function GET(req, res) {
-        req.__zedd.log('Zedd enhanced GET:', req.url);
-        return standardRequestHandler(req, getResProxy(req,res));
-    }
-
-    function PUT(req, res) {
-        req.__zedd.log('Zedd enhanced PUT:', req.url);
-        return standardRequestHandler(req, res);
-    }
-    
-    
+ /* 
     
     function bufferPatchRequest(req, res, callback) {
         var buffers = [],
@@ -446,7 +436,19 @@ function ZeddAsMiddleWare(options, handlerOptions) {
             callback();
         });
     }
-        
+  
+  
+      function GET(req, res) {
+        req.__zedd.log('Zedd enhanced GET:', req.url);
+        return standardRequestHandler(req, getResProxy(req,res));
+    }
+
+    function PUT(req, res) {
+        req.__zedd.log('Zedd enhanced PUT:', req.url);
+        return standardRequestHandler(req, res);
+    }
+    
+    
      function PATCH(req,res){
          req.__zedd.log('Zedd enhanced PATCH:', req.url);
          bufferPatchRequest (req,res,function(){
@@ -523,7 +525,7 @@ function ZeddAsMiddleWare(options, handlerOptions) {
            return standardRequestHandler(req, res);
     }
     
- 
+ */
  
 
 }

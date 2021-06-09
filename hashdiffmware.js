@@ -2,12 +2,20 @@
 /*global define*/
 (function(/*node>>>*/isNodeJS/*<<<node*/ ){
 (function(
-    exports, // <<< maps to window.stringDiffRegex / module.exports
+    exports, 
     define
     ) {
         
     const sha1 = sha1Lib();
+    
     const cpArgs = Array.prototype.slice.call.bind (Array.prototype.slice);
+    
+    const upgrade_header_name = 'x-hashdiffmware';
+    const upgrade_header_value = 'upgrade';
+    const upgrade_headers = {};
+    upgrade_headers [upgrade_header_name]=upgrade_header_value;
+
+
     
     function forwardSubstring(origin, start, length, hash, hasher,key) {
         var self = {};
@@ -1596,7 +1604,7 @@
            fullpatch   : [],   
         };
         
-        Object.setProperties(self, {
+        Object.defineProperties(self, {
             value: {
                 get: function() {
                     return value;
@@ -1693,13 +1701,10 @@
     
     }
     
-    function ajaxMiddleWare(ajax,base_URI,username,password,upgrade_headers) {
-        
-        base_URI=base_URI || "/";
-        
-        upgrade_headers=upgrade_headers||{"x-hash-diff-merge":"1"};
+    function ajaxMiddleWare(ajax,base_URL,username,password) {
         
         var cache = {};
+        
         checkCached();
     
         return ajaxHandler;
@@ -1713,20 +1718,20 @@
             return cb(defaultValue);
         } 
         
-        function updateCache(uri, uri_id, value, cb) {
+        function updateCache(url, uri_id, value, cb) {
            const cacheObj = cache[uri_id]; 
            const NOW=Date.now();
            if (cacheObj) {
                cacheObj.touched = NOW;
                cacheObj.changed = NOW;
-               cacheObj.data=value;
+               cacheObj.data    = value;
                return cb (cacheObj);
            } else {
                const newCacheObj = cache[uri_id] = {
                   touched : NOW,
-                  saved   : NOW,
                   changed : NOW,
-                  data    : value
+                  data    : value,
+                  url     : url
                };
                return cb (newCacheObj);
            }         
@@ -1767,7 +1772,7 @@
         }
 
         function on_updated (uri_id, url, cacheObj, msg) {
-            updateCache(uri_id,msg[3],function(cacheObj){
+            updateCache(url, uri_id,msg[3],function(cacheObj){
                 ajax (
                     ajaxPatchTemplate(
                         url,msg,
@@ -1797,8 +1802,11 @@
         
         function ajaxHandler(AJAX, JQ, ARGS, ON) {
             
+            
+            console.log("ajaxHandler:",ARGS);
+            
             // handler for all requests that are local ("ON.URI") 
-            ON.URI(base_URI,function(){
+            ON.URL(base_URL,function(){
                 
                 ON.beforeGET(beforeAjaxGet);
                 ON.after_GET(afterAjaxGet);
@@ -1818,25 +1826,25 @@
                 
         }
         
-        function beforeAjaxGet(uri, uri_id, allow, deny, respond, OPTS) {
+        function beforeAjaxGet(url, uri_id, allow, deny, respond, OPTS) {
             getFromCache(uri_id,null,function(file,cacheObj){
                 if (file===null) {
                    return allow();
                 }
                 if (!cacheObj.handle) {
                     cacheObj.handle = openDiffer(cacheObj,uri_id);
-                    cacheObj.handle.addEventListener('fullpatch',on_updated.bind(this,uri_id,uri,cacheObj));
-                    cacheObj.handle.addEventListener('changepatch',on_changed.bind(this,uri_id,uri,cacheObj));
+                    cacheObj.handle.addEventListener('fullpatch',on_updated.bind(this,uri_id,url,cacheObj));
+                    cacheObj.handle.addEventListener('changepatch',on_changed.bind(this,uri_id,url,cacheObj));
                 } 
                 return respond(200,file);
             });
         }
-        function afterAjaxGet(uri, uri_id, response, deny, respond) {
-           updateCache(uri_id,response,function(cacheObj){
+        function afterAjaxGet(url, uri_id, response, deny, respond) {
+           updateCache(url, uri_id,response,function(cacheObj){
                if (!cacheObj.handle) {
                    cacheObj.handle = openDiffer(cacheObj,uri_id);
-                   cacheObj.handle.addEventListener('fullpatch',on_updated.bind(this,uri_id,uri,cacheObj));
-                   cacheObj.handle.addEventListener('changepatch',on_changed.bind(this,uri_id,uri,cacheObj));
+                   cacheObj.handle.addEventListener('fullpatch',on_updated.bind(this,uri_id,url,cacheObj));
+                   cacheObj.handle.addEventListener('changepatch',on_changed.bind(this,uri_id,url,cacheObj));
                } 
                respond(response);
            });
@@ -1846,8 +1854,8 @@
             deny(status);
         }
         
-        function beforeAjaxPut(uri, uri_id, allow, deny, respond, OPTS) {
-             updateCache(uri_id,OPTS.data,function(){
+        function beforeAjaxPut(url, uri_id, allow, deny, respond, OPTS) {
+             updateCache(url,uri_id,OPTS.data,function(){
                 allow();
              });
         }
@@ -1864,11 +1872,13 @@
             console.log(uri);
             allow();
         }
+        
         function afterAjaxPost(uri, url_id, response, deny, respond) {
            console.log(response);// inspect results
            response.seen = true;//modify results
            respond(response);
         }
+        
         function onAjaxPostError(uri, url_id, status, deny, respond) {
             console.log(status);// inspect results
             if (status===500) {
@@ -1880,10 +1890,12 @@
         
     }
     
+    
     function sha1Lib() {
         return sha1Lib.lib || (function(x) {
-            console.log({x}); 
-            return (sha1Lib.lib = (x === 'objectundefined' ? sha1Node : sha1Browser)());
+            
+            return  (sha1Lib.lib = (/*node>>>*/x === 'objectundefined' ? sha1Node : /*<<<node*/  sha1Browser)() );
+            
         })(typeof process + typeof window);
     
         function sha1SubtleBrowser() {
@@ -1927,7 +1939,7 @@
                 return (typeof cb === 'function') ? cb(hex) : hex;
             }
         }
-    
+    /*node>>>*/
         function sha1Node() {
             var crypto = require('crypto');
             return function sha1(str, cb) {
@@ -1937,6 +1949,7 @@
                 return typeof cb === 'function' ? setImmediate(cb, hex) : hex;
             };
         }
+    /*<<<node*/ 
     }
     
     
@@ -1948,21 +1961,27 @@
         exports.openDiffer       = openDiffer;
         exports.ajaxMiddleWare   = ajaxMiddleWare;
         
+        
+        exports.upgrade_header_name = upgrade_header_name;
+        exports.upgrade_header_value = upgrade_header_value;
+        exports.upgrade_headers = upgrade_headers;
+        
         return exports;
     });        
     
 
 /*node>>>*/
 
+
     if (isNodeJS) {
         (function(){            
-                    const fs = require('fs');
-                    var crypto = require("crypto");
-                    var pathlib = require("path");
-                    var urllib = require("url");
-                    var mime = require("mime");
+                    const fs = require('fs'),
+                    crypto = require("crypto"),
+                    pathlib = require("path"),
+                    urllib = require("url"),
+                    mime = require("mime"),
                     
-                    var {
+                    {
                             fs_make_path_for_sync,
                             fs_writeFileSync,
                             fs_make_path_for,
@@ -1970,6 +1989,7 @@
                             fs_statSync,
                             fs_stat,
                             fs_atmomicReplace
+                            
                     } = require('./fs-tools.js'),
                         
                         
@@ -1978,17 +1998,18 @@
                         bufferBodyRequest,
                         proxyRequestBody,
                         proxyResponseWrite
+                        
                     } = require ("./req-res-proxies.js");
 
-                    exports.selfServeHandler = require('./self-serve-handler.js')(__filename);
-                    
+
+                    // no point in exporting the web browser middlware code...
                     delete exports.ajaxMiddleWare;
+                    exports.selfServeHandler = require('./self-serve-handler.js')(__filename);
                     exports.nodeMiddleware = nodeMiddleware;
    
 
              function nodeMiddleware(
                  app,express,
-                 upgrade_headers,
                  realGetHandler,realPutHandler,realDeleteHandler) {
                 
                  const cache = {};
