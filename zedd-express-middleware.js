@@ -176,6 +176,7 @@ function ZeddAsMiddleWare(options, handlerOptions) {
             req.url = req.url.replace(leadingDoubleSlash, singleSlash);
         }
 
+        console.log(req.headers[upgrade_header_name],"vs",upgrade_header_value);
         const enh = req.headers[upgrade_header_name] === upgrade_header_value;
         if (enh) {
             delete req.headers[upgrade_header_name];

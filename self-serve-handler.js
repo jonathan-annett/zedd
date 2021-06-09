@@ -1,5 +1,5 @@
 
-module.exports = function(filename,etagger) {
+module.exports = function(filename,etagger,strip_regex) {
 
     const fs = require('fs'), pathlib = require('path'),crypto=require('crypto');
     const cleanup = new RegExp('\\/\\*node\\>\\>\\>\\*\\/(.*?)\\/\\*\\<\\<\\<node\\*\\/', 'sg');
@@ -63,7 +63,7 @@ module.exports = function(filename,etagger) {
                         res.status(500).send('Internal Error:' + err.message || err.toString());
                     }
                     etagger(filename,data,function(etag,when){
-                        const clean = data.replace(cleanup, '');
+                        const clean = data.replace(cleanup, '').replace(!!strip_regex?strip_regex:'','');
                         handler.browser_src = Buffer.from(
                             "//self-served: file modification time : "+(new Date(when).toUTCString())+", ETag:"+etag+"\n"+
                             "//via "+handler.name+"() in "+filename+",called by "+callerStack[1].split("at ")[1]+"\n"+

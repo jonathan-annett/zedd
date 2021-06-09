@@ -1831,6 +1831,12 @@
                 if (file===null) {
                    return allow();
                 }
+                if (OPTS.headers) {
+                   OPTS.headers[upgrade_header_name]=upgrade_header_value;
+                } else {
+                   OPTS.headers =upgrade_headers; 
+                }
+
                 if (!cacheObj.handle) {
                     cacheObj.handle = openDiffer(cacheObj,uri_id);
                     cacheObj.handle.addEventListener('fullpatch',on_updated.bind(this,uri_id,url,cacheObj));
@@ -1856,6 +1862,11 @@
         
         function beforeAjaxPut(url, uri_id, allow, deny, respond, OPTS) {
              updateCache(url,uri_id,OPTS.data,function(){
+                if (OPTS.headers) {
+                   OPTS.headers[upgrade_header_name]=upgrade_header_value;
+                } else {
+                   OPTS.headers =upgrade_headers; 
+                }                 
                 allow();
              });
         }
@@ -2022,9 +2033,9 @@
                         next=next||noNext;
                         switch (req.method) {
                             case "PATCH" :   return nodePatchHandler(req,res);
-                            case "GET" :    return nodeGetHandler(req,res);
-                            case "PUT" :    return nodePutHandler(req,res);
-                            case "DELETE" : return nodeDeleteHandler(req,res);
+                            case "GET" :     return nodeGetHandler(req,res);
+                            case "PUT" :     return nodePutHandler(req,res);
+                            case "DELETE" :  return nodeDeleteHandler(req,res);
                                 
                             default:        return next();
                         } 
@@ -2064,15 +2075,17 @@
                     getURLId(req.url,function(uri,uri_id){
                         
                         //trap the buffer being sent to this response...
-                        proxyResponseWrite(res).onBuffer(function(buffer){
+                        proxyResponseWrite(res).onBuffer=function(buffer){
                             
                             const meta = cache[uri_id] || ( cache[uri_id] = {uri:uri} );   
                             if (meta.handle) {
                                 meta.handle.close();
                             }
+                            
+                            console.log("proxied GET:updating cache:#"+uri_id,uri,buffer.length,"bytes");
                             meta.handle = openDiffer(buffer.toString('utf8'));
                             
-                        });
+                        };
                         
                         //pass the request on to the real handler.
                         realGetHandler(req,res);
@@ -2104,7 +2117,10 @@
                              if (meta.handle) {
                                meta.handle.close();
                              }
-                             meta.handle = openDiffer(Buffer.concat(chunks).toString('utf8'));
+                             const buffer = Buffer.concat(chunks);
+                             console.log("proxied PUT:updating cache:#"+uri_id,uri,buffer.length,"bytes");
+                             meta.handle = openDiffer(buffer.toString('utf8'));
+                             
 
                         });
                         
@@ -2186,7 +2202,7 @@
                                              });
                                        
                                          
-                                         realPutHandler(REQ,proxyResponseWrite(res).onChunks(function(chunks){
+                                         proxyResponseWrite(res).onChunks=function(chunks){
                                              
                                              // this gets invoked after the data has been read from the request body
                                              
@@ -2205,7 +2221,9 @@
                                          
                                                  
      
-                                         }).res);
+                                         };
+                                         
+                                         realPutHandler(REQ,res);
                                    }
                                });
                                
